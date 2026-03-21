@@ -1,7 +1,7 @@
 {
-  "name": "winccoa-hello-world",
-  "displayName": "WinCC OA — Hello World",
-  "description": "VS Code extension template for WinCC OA tools.",
+  "name": "winccoa-dp-inspector",
+  "displayName": "WinCC OA DP Inspector",
+  "description": "Live datapoint inspector for WinCC OA — charts, subscriptions, and real-time value monitoring.",
   "publisher": "winccoa-tools-pack",
   "version": "0.2.0",
   "author": "winccoa-tools-pack",
@@ -9,12 +9,12 @@
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/winccoa-tools-pack/<your-repository>"
+    "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector"
   },
   "bugs": {
-    "url": "https://github.com/winccoa-tools-pack/<your-repository>/issues"
+    "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector/issues"
   },
-  "homepage": "https://github.com/winccoa-tools-pack/<your-repository>#readme",
+  "homepage": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector#readme",
   "engines": {
     "vscode": "^1.109.2"
   },
@@ -39,17 +39,38 @@
   "contributes": {
     "commands": [
       {
-        "command": "winccoa.helloWorld",
-        "title": "WinCC OA: Hello World"
+        "command": "winccoa.dpInspector.open",
+        "title": "WinCC OA: Open DP Inspector",
+        "category": "WinCC OA",
+        "icon": "resources/icon.png"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "WinCC OA DP Inspector",
+      "properties": {
+        "winccoa.dpInspector.host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "Hostname or IP address of the running winccoa-dp-inspector-server WebSocket server."
+        },
+        "winccoa.dpInspector.port": {
+          "type": "number",
+          "default": 4712,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "TCP port of the running winccoa-dp-inspector-server WebSocket server."
+        }
+      }
+    }
   },
   "extensionDependencies": [
     "RichardJanisch.winccoa-project-admin"
   ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "webpack",
+    "compile": "cd webview && npm run build && cd .. && webpack",
+    "compile:extension": "webpack",
+    "compile:webview": "cd webview && npm run build",
     "clean:out": "node -e \"require('fs').rmSync('out',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
     "clean:out-tests": "node -e \"try{require('fs').rmSync('out/test',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })}catch(e){console.warn('clean:out-tests skipped:', e.message)}\"",
     "clean:coverage": "node -e \"require('fs').rmSync('coverage',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
@@ -61,6 +82,7 @@
     "start:insiders": "code-insiders --extensionDevelopmentPath=.",
     "dev": "npm run watch",
     "watch": "webpack --watch",
+    "watch:webview": "cd webview && npm run dev",
     "pretest": "npm run compile && npm run compile:tsc && npm run lint",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",

@@ -43,6 +43,7 @@ import * as vscode from 'vscode';
 import { ExtensionOutputChannel } from './extensionOutput';
 import { EXTENSION_CONFIG_SECTION, EXTENSION_ID, EXTENSION_NAME } from './const';
 import { setupCoreExtensionIntegration, cleanupCoreExtensionIntegration } from './otherExtensions';
+import { DpInspectorPanel } from './dpInspectorPanel';
 
 /**
  * Interface representing a WinCC OA project.
@@ -79,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ExtensionOutputChannel.info('Extension', `Extension Path: ${context.extensionPath}`);
     ExtensionOutputChannel.debug('Extension', `VS Code Version: ${vscode.version}`);
 
-    // Setup Core extension integration if in automatic mode
+    // Setup Core extension integration (provides active WinCC OA project info)
     await setupCoreExtensionIntegration(context);
 
     // Watch for configuration changes
@@ -89,20 +90,30 @@ export async function activate(context: vscode.ExtensionContext) {
                 ExtensionOutputChannel.updateLogLevel();
             }
             if (e.affectsConfiguration(`${EXTENSION_CONFIG_SECTION}.pathSource`)) {
-                // Re-setup Core integration when mode changes
                 void setupCoreExtensionIntegration(context);
+            }
+            // Forward host/port changes to an open panel
+            if (
+                e.affectsConfiguration(`${EXTENSION_CONFIG_SECTION}.host`) ||
+                e.affectsConfiguration(`${EXTENSION_CONFIG_SECTION}.port`)
+            ) {
+                const cfg = vscode.workspace.getConfiguration(EXTENSION_CONFIG_SECTION);
+                const host = cfg.get<string>('host', 'localhost');
+                const port = cfg.get<number>('port', 4712);
+                if (DpInspectorPanel.currentPanel) {
+                    DpInspectorPanel.currentPanel.sendConfigChanged(host, port);
+                }
             }
         }),
     );
 
-    // Register a simple command
-    const disposable = vscode.commands.registerCommand('winccoa.helloWorld', () => {
-        vscode.window.showInformationMessage(
-            `Hello from WinCC OA VS Code Extension!\n${EXTENSION_NAME}`,
-        );
+    // Register the "Open DP Inspector" command
+    const openCommand = vscode.commands.registerCommand('winccoa.dpInspector.open', () => {
+        ExtensionOutputChannel.info('Extension', 'Opening DP Inspector panel');
+        DpInspectorPanel.createOrShow(context);
     });
 
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(openCommand);
 }
 
 /**
