@@ -43,6 +43,21 @@
         "title": "WinCC OA: Open DP Inspector",
         "category": "WinCC OA",
         "icon": "resources/icon.png"
+      },
+      {
+        "command": "winccoa.dpInspector.setup",
+        "title": "WinCC OA: DP Inspector - Setup Server",
+        "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.dpInspector.rebuild",
+        "title": "WinCC OA: DP Inspector - Rebuild / Update Server",
+        "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.dpInspector.serverStatus",
+        "title": "WinCC OA: DP Inspector - Show Server Status",
+        "category": "WinCC OA"
       }
     ],
     "configuration": {
@@ -59,6 +74,16 @@
           "minimum": 1,
           "maximum": 65535,
           "description": "TCP port of the running winccoa-dp-inspector-server WebSocket server."
+        },
+        "winccoa.dpInspector.server.repoUrl": {
+          "type": "string",
+          "default": "https://github.com/winccoa-tools-pack/winccoa-dp-inspector-server",
+          "description": "Git repository URL of the dp-inspector-server used by the Setup and Rebuild commands."
+        },
+        "winccoa.dpInspector.server.branch": {
+          "type": "string",
+          "default": "feature/dp-inspector-0.1.0",
+          "description": "Git branch to clone / pull when running Setup or Rebuild (e.g. \"main\", \"develop\")."
         }
       }
     }
@@ -144,6 +169,6 @@
     "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"
   },
   "dependencies": {
-    "@winccoa-tools-pack/npm-winccoa-core": "0.2.6"
+    "@winccoa-tools-pack/npm-winccoa-core": "^0.2.3"
   }
 }

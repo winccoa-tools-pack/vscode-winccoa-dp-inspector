@@ -44,6 +44,8 @@ import { ExtensionOutputChannel } from './extensionOutput';
 import { EXTENSION_CONFIG_SECTION, EXTENSION_ID, EXTENSION_NAME } from './const';
 import { setupCoreExtensionIntegration, cleanupCoreExtensionIntegration } from './otherExtensions';
 import { DpInspectorPanel } from './dpInspectorPanel';
+import { checkServerStatus, runSetup, runRebuild, addProgsEntryForProject } from './serverSetup';
+import { getCurrentProjectInfo } from './otherExtensions';
 
 /**
  * Interface representing a WinCC OA project.
@@ -108,12 +110,159 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Register the "Open DP Inspector" command
-    const openCommand = vscode.commands.registerCommand('winccoa.dpInspector.open', () => {
+    const openCommand = vscode.commands.registerCommand('winccoa.dpInspector.open', async () => {
         ExtensionOutputChannel.info('Extension', 'Opening DP Inspector panel');
+
+        // ── 1. Require an active project ─────────────────────────────────────
+        const project = getCurrentProjectInfo();
+        if (!project?.projectDir) {
+            vscode.window.showErrorMessage(
+                'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+            );
+            return;
+        }
+        const projectPath = project.projectDir;
+
+        const status = checkServerStatus(projectPath);
+
+        // ── 2. Server not installed → offer full setup ────────────────────────
+        if (!status.isInstalled) {
+            const answer = await vscode.window.showInformationMessage(
+                'DP Inspector Server is not installed for this project. Run auto-setup now?',
+                'Run Setup',
+                'Cancel',
+            );
+            if (answer !== 'Run Setup') {
+                return;
+            }
+            try {
+                await runSetup(project);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
+                vscode.window.showErrorMessage(`DP Inspector Server setup failed: ${msg}`);
+                return;
+            }
+            // Open panel after successful setup
+            DpInspectorPanel.createOrShow(context);
+            return;
+        }
+
+        // ── 3. Installed but no progs entry → offer to add it ────────────────
+        if (!status.hasProgsEntry) {
+            const answer = await vscode.window.showWarningMessage(
+                'DP Inspector Server is installed but has no manager entry in the progs file. Add it now?',
+                'Add Entry',
+                'Open Anyway',
+                'Cancel',
+            );
+            if (answer === 'Cancel' || answer === undefined) {
+                return;
+            }
+            if (answer === 'Add Entry') {
+                try {
+                    addProgsEntryForProject(projectPath);
+                    vscode.window.showInformationMessage(
+                        'Manager entry added to progs. Restart the WinCC OA project to start the server.',
+                    );
+                } catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    ExtensionOutputChannel.error('Extension', `Failed to add progs entry: ${msg}`);
+                    vscode.window.showErrorMessage(`Failed to add progs entry: ${msg}`);
+                    return;
+                }
+            }
+            // answer === 'Open Anyway' → fall through
+        }
+
+        // ── 4. All good (or user chose Open Anyway) → open panel ─────────────
         DpInspectorPanel.createOrShow(context);
     });
 
-    context.subscriptions.push(openCommand);
+    // ── Setup command ─────────────────────────────────────────────────────────
+    const setupCommand = vscode.commands.registerCommand(
+        'winccoa.dpInspector.setup',
+        async () => {
+            ExtensionOutputChannel.info('Extension', 'Running server setup');
+
+            const project = getCurrentProjectInfo();
+            if (!project?.projectDir) {
+                vscode.window.showErrorMessage(
+                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+                );
+                return;
+            }
+
+            const status = checkServerStatus(project.projectDir);
+            if (status.isInstalled) {
+                const answer = await vscode.window.showWarningMessage(
+                    `DP Inspector Server is already installed at ${status.serverPath}. Re-install?`,
+                    'Re-install',
+                    'Cancel',
+                );
+                if (answer !== 'Re-install') {
+                    return;
+                }
+            }
+
+            try {
+                await runSetup(project);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
+                vscode.window.showErrorMessage(`DP Inspector Server setup failed: ${msg}`);
+            }
+        },
+    );
+
+    // ── Rebuild command ───────────────────────────────────────────────────────
+    const rebuildCommand = vscode.commands.registerCommand(
+        'winccoa.dpInspector.rebuild',
+        async () => {
+            ExtensionOutputChannel.info('Extension', 'Running server rebuild');
+
+            const project = getCurrentProjectInfo();
+            if (!project?.projectDir) {
+                vscode.window.showErrorMessage(
+                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+                );
+                return;
+            }
+
+            try {
+                await runRebuild(project);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                ExtensionOutputChannel.error('Extension', `Rebuild failed: ${msg}`);
+                vscode.window.showErrorMessage(`DP Inspector Server rebuild failed: ${msg}`);
+            }
+        },
+    );
+
+    // ── Status command ────────────────────────────────────────────────────────
+    const statusCommand = vscode.commands.registerCommand(
+        'winccoa.dpInspector.serverStatus',
+        async () => {
+            const project = getCurrentProjectInfo();
+            if (!project?.projectDir) {
+                vscode.window.showErrorMessage(
+                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+                );
+                return;
+            }
+
+            const status = checkServerStatus(project.projectDir);
+            const lines = [
+                `Project:      ${project.projectDir}`,
+                `Installed:    ${status.isInstalled ? '✅ yes' : '❌ no'}`,
+                `Progs entry:  ${status.hasProgsEntry ? '✅ yes' : '❌ no'}`,
+                `Server path:  ${status.serverPath}`,
+            ];
+            vscode.window.showInformationMessage(lines.join('\n'), { modal: true });
+        },
+    );
+
+    context.subscriptions.push(openCommand, setupCommand, rebuildCommand, statusCommand);
 }
 
 /**
