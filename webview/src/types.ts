@@ -34,10 +34,16 @@ export interface UpdateMsg {
   quality: 'good' | 'bad' | 'uncertain';
 }
 
+/** A single DP entry from dpSearch results. */
+export interface DpSearchEntry {
+  name: string;
+  type: DpType;
+}
+
 export interface DpSearchResultMsg {
   type: 'dpSearchResult';
   id: string;
-  dps: string[];
+  dps: DpSearchEntry[];
 }
 
 export interface ErrorMsg {
@@ -50,28 +56,58 @@ export type ServerMessage = SubscribedMsg | UpdateMsg | DpSearchResultMsg | Erro
 
 // ─── UI model types ───────────────────────────────────────────────────────────
 
-/** A single timestamped data point for a series on a chart. */
-export interface DataPoint {
-  ts: number; // unix ms
-  value: number | null;
-}
+export type DpType = 'float' | 'int' | 'bool' | 'enum';
+export type TimeRange = '30s' | '2min' | '10min';
+export type Interpolation = 'step' | 'linear';
 
-/** One DP series inside a chart group. */
-export interface DpSeries {
+/** Metadata for a single DP (assigned when added). */
+export interface DpMeta {
   dp: string;
+  type: DpType;
   color: string;
-  data: DataPoint[];
+  unit?: string;
 }
 
-export type TimeRange = '30s' | '2min' | '10min' | 'custom';
+/** Live series buffer for Chart.js — {x: ts ms, y: value}. */
+export interface SeriesData {
+  points: { x: number; y: number }[];
+  latestValue: number | string | boolean | null;
+  latestTs: number;
+  quality: 'good' | 'uncertain' | 'bad';
+}
 
-/** A chart panel that can show multiple DPs overlaid. */
+/** A chart group card. */
 export interface ChartGroup {
   id: string;
   name: string;
-  dps: string[]; // ordered list of subscribed DP names
-  timeRange: TimeRange;
-  customRangeMs?: number; // only used when timeRange === 'custom'
+  dps: string[];
+  timerange: TimeRange;
+}
+
+/** App settings (persisted). */
+export interface AppSettings {
+  host: string;
+  port: number;
+  project: string;
+  defaultTimerange: TimeRange;
+  interpolation: Interpolation;
+  autoReconnect: boolean;
+}
+
+/** Full app state. */
+export interface AppState {
+  connected: boolean;
+  groups: ChartGroup[];
+  dpMeta: Record<string, DpMeta>;
+  dpData: Record<string, SeriesData>;
+  settings: AppSettings;
+}
+
+/** Shape persisted to workspaceState. */
+export interface PersistedAppState {
+  groups: ChartGroup[];
+  dpMeta: Record<string, DpMeta>;
+  settings: AppSettings;
 }
 
 /** Snapshot of one DP's latest value shown in the live table. */
@@ -83,39 +119,25 @@ export interface LiveValue {
   quality: 'good' | 'bad' | 'uncertain';
 }
 
-/** The entire application state that is persisted to VS Code workspaceState. */
-export interface PersistedAppState {
-  groups: ChartGroup[];
-  host: string;
-  port: number;
-}
-
-/** Runtime state (not persisted — cleared on reload). */
-export interface SeriesDataMap {
-  // dp → DpSeries
-  [dp: string]: DpSeries;
-}
-
-// ─── Distinct color palette for series (8 colors) ────────────────────────────
+// ─── Color palette ────────────────────────────────────────────────────────────
 
 export const DP_COLORS: readonly string[] = [
-  '#4fc3f7', // sky blue
-  '#81c784', // green
-  '#ffb74d', // amber
-  '#e57373', // red
-  '#ba68c8', // purple
-  '#4dd0e1', // cyan
-  '#fff176', // yellow
-  '#ff8a65', // orange
+  '#4db8ff',
+  '#4ec94e',
+  '#f0a030',
+  '#b78fff',
+  '#ff6b8a',
+  '#5dcaa5',
+  '#f48771',
+  '#cca700',
 ] as const;
 
 export function colorForIndex(index: number): string {
   return DP_COLORS[index % DP_COLORS.length]!;
 }
 
-/** Time ranges in milliseconds. */
-export const TIME_RANGE_MS: Record<Exclude<TimeRange, 'custom'>, number> = {
-  '30s': 30_000,
-  '2min': 2 * 60_000,
+export const TIME_RANGE_MS: Record<TimeRange, number> = {
+  '30s':   30_000,
+  '2min':  2 * 60_000,
   '10min': 10 * 60_000,
 };

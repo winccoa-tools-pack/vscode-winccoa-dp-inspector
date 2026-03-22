@@ -1,12 +1,14 @@
-﻿import React, { useEffect, useReducer, useRef } from 'react';
+﻿import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { reducer, initialState, getAllDps } from './store/reducer';
-import type { AppState, Action } from './store/reducer';
 import type { PersistedAppState } from './types';
-import { WsContextProvider } from './context/WsContext';
+import { WsContextProvider, useWs } from './context/WsContext';
 import { Toolbar } from './components/Toolbar';
-import { ChartGroup as ChartGroupComponent } from './components/ChartGroup';
+import { ChartGroup } from './components/ChartGroup';
 import { LiveValueTable } from './components/LiveValueTable';
-import { useWs } from './context/WsContext';
+import { SettingsDrawer } from './components/SettingsDrawer';
+import { AddDpDialog } from './components/AddDpDialog';
+import type { AppState } from './types';
+import type { Action } from './store/reducer';
 
 // ─── VS Code API ──────────────────────────────────────────────────────────────
 
@@ -17,22 +19,12 @@ declare global {
     setState: (state: unknown) => void;
   };
 }
-
 const vscode = typeof acquireVsCodeApi !== 'undefined' ? acquireVsCodeApi() : null;
 
-// ─── Root App ────────────────────────────────────────────────────────────────
-//
-// Architecture:
-//   App  (owns useReducer, creates WsContextProvider)
-//    └─ WsContextProvider (receives dispatch to push UPDATE_VALUE actions)
-//         └─ AppShell    (inside provider → has access to connect())
-//              ├─ Toolbar
-//              ├─ Chart area
-//              └─ Live table
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
   return (
     <WsContextProvider dispatch={dispatch}>
       <AppShell state={state} dispatch={dispatch} />
@@ -40,39 +32,41 @@ export default function App() {
   );
 }
 
-// ─── AppShell ────────────────────────────────────────────────────────────────
+// ─── AppShell ─────────────────────────────────────────────────────────────────
 
-interface ShellProps {
-  state: AppState;
-  dispatch: React.Dispatch<Action>;
-}
+interface ShellProps { state: AppState; dispatch: React.Dispatch<Action>; }
 
 function AppShell({ state, dispatch }: ShellProps) {
   const { connect } = useWs();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Handle messages from extension host ───────────────────────────────────
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAddDp, setShowAddDp]       = useState(false);
+
+  // ── Bridge messages from extension host ─────────────────────────────────
   useEffect(() => {
     function handleMessage(event: MessageEvent<{ command: string; [key: string]: unknown }>) {
-      const message = event.data;
-      switch (message.command) {
+      const msg = event.data;
+      switch (msg.command) {
         case 'initState': {
-          const host = (message['host'] as string | undefined) ?? 'localhost';
-          const port = (message['port'] as number | undefined) ?? 4712;
-          const persisted = message['persistedState'] as PersistedAppState | null | undefined;
+          const persisted = msg['persistedState'] as PersistedAppState | null | undefined;
+          const fallbackHost = (msg['host'] as string | undefined) ?? 'localhost';
+          const fallbackPort = (msg['port'] as number | undefined) ?? 4712;
           if (persisted?.groups?.length) {
-            dispatch({ type: 'RESTORE_STATE', state: persisted });
-            connect(persisted.host ?? host, persisted.port ?? port);
+            dispatch({ type: 'LOAD_STATE', payload: persisted });
+            connect(persisted.settings?.host ?? fallbackHost, persisted.settings?.port ?? fallbackPort);
           } else {
-            dispatch({ type: 'SET_CONNECTION', host, port });
-            connect(host, port);
+            dispatch({ type: 'UPDATE_SETTINGS', payload: { host: fallbackHost, port: fallbackPort } });
+            connect(fallbackHost, fallbackPort);
           }
           break;
         }
         case 'configChanged': {
-          const host = (message['host'] as string | undefined) ?? state.host;
-          const port = (message['port'] as number | undefined) ?? state.port;
-          dispatch({ type: 'SET_CONNECTION', host, port });
+          const host = msg['host'] as string | undefined;
+          const port = msg['port'] as number | undefined;
+          if (host !== undefined || port !== undefined) {
+            dispatch({ type: 'UPDATE_SETTINGS', payload: { ...(host ? { host } : {}), ...(port ? { port } : {}) } });
+          }
           break;
         }
       }
@@ -83,52 +77,86 @@ function AppShell({ state, dispatch }: ShellProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connect]);
 
-  // ── Persist state changes to VS Code workspaceState (debounced) ───────────
+  // ── Persist state (debounced 500ms) ─────────────────────────────────────
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       const persisted: PersistedAppState = {
-        groups: state.groups,
-        host: state.host,
-        port: state.port,
+        groups:   state.groups,
+        dpMeta:   state.dpMeta,
+        settings: state.settings,
       };
       vscode?.postMessage({ command: 'saveState', state: persisted });
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [state.groups, state.host, state.port]);
+  }, [state.groups, state.dpMeta, state.settings]);
+
+  function handleAddGroup() {
+    dispatch({ type: 'ADD_GROUP', payload: { name: `Group ${state.groups.length + 1}` } });
+  }
 
   const allDps = getAllDps(state.groups);
 
   return (
-    <div className="app-container">
-      <Toolbar state={state} dispatch={dispatch} />
+    <div className="app">
+      <Toolbar
+        state={state}
+        dispatch={dispatch}
+        onOpenSettings={() => setShowSettings(true)}
+        onAddDp={() => setShowAddDp(true)}
+      />
+
+      {showSettings && (
+        <SettingsDrawer
+          settings={state.settings}
+          dispatch={dispatch}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
       <div className="chart-area">
         {state.groups.length === 0 ? (
           <div className="chart-area-empty">
             <p>No chart groups yet.</p>
-            <p>Click <strong>+ Add Chart Group</strong> in the toolbar, then search for DPs to add.</p>
+            <button className="toolbar-btn" onClick={handleAddGroup}>
+              + Add Group
+            </button>
           </div>
         ) : (
-          state.groups.map((group) => (
-            <ChartGroupComponent
-              key={group.id}
-              group={group}
-              seriesData={state.seriesData}
-              dispatch={dispatch}
-            />
-          ))
+          <>
+            {state.groups.map((group) => (
+              <ChartGroup
+                key={group.id}
+                group={group}
+                dpMeta={state.dpMeta}
+                dpData={state.dpData}
+                dispatch={dispatch}
+              />
+            ))}
+            <button className="add-group-btn" onClick={handleAddGroup}>
+              + Add Group
+            </button>
+          </>
         )}
       </div>
 
-      <div className="live-table-section">
-        <LiveValueTable liveValues={state.liveValues} seriesData={state.seriesData} />
-        {allDps.length > 0 && (
-          <div className="live-table-count">
-            {allDps.length} DP{allDps.length !== 1 ? 's' : ''} monitored
+      {allDps.length > 0 && (
+        <div className="live-table-section">
+          <div className="live-table-header">
+            Live Values
+            <span className="live-table-count">{allDps.length} DP{allDps.length !== 1 ? 's' : ''}</span>
           </div>
-        )}
-      </div>
+          <LiveValueTable dpMeta={state.dpMeta} dpData={state.dpData} />
+        </div>
+      )}
+
+      {showAddDp && (
+        <AddDpDialog
+          groups={state.groups}
+          dispatch={dispatch}
+          onClose={() => setShowAddDp(false)}
+        />
+      )}
     </div>
   );
 }

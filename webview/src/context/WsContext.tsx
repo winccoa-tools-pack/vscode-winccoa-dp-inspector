@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react';
 import type { Action } from '../store/reducer';
-import type { ServerMessage, ClientMessage, DpSearchResultMsg } from '../types';
+import type { ServerMessage, ClientMessage, DpSearchResultMsg, DpSearchEntry } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ interface WsContextValue {
   disconnect: () => void;
   subscribe: (id: string, dps: string[]) => void;
   unsubscribe: (id: string) => void;
-  search: (query: string) => Promise<string[]>;
+  search: (query: string) => Promise<DpSearchEntry[]>;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export function WsContextProvider({ dispatch, children }: Props) {
   const portRef = useRef<number>(4712);
 
   // Pending dpSearch promises: id → { resolve, reject }
-  const pendingSearches = useRef<Map<string, { resolve: (dps: string[]) => void; reject: (err: Error) => void }>>(new Map());
+  const pendingSearches = useRef<Map<string, { resolve: (dps: DpSearchEntry[]) => void; reject: (err: Error) => void }>>(new Map());
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -60,6 +60,8 @@ export function WsContextProvider({ dispatch, children }: Props) {
       wsRef.current.send(JSON.stringify(msg));
       return true;
     }
+    console.warn('[WsContext] sendRaw failed — ws not open. readyState:',
+      wsRef.current?.readyState, 'msg.type:', msg.type);
     return false;
   }, []);
 
@@ -91,11 +93,8 @@ export function WsContextProvider({ dispatch, children }: Props) {
       switch (msg.type) {
         case 'update':
           dispatch({
-            type: 'UPDATE_VALUE',
-            dp: msg.dp,
-            value: msg.value,
-            ts: msg.ts,
-            quality: msg.quality,
+            type: 'ON_UPDATE',
+            payload: { dp: msg.dp, value: msg.value, ts: msg.ts, quality: msg.quality },
           });
           break;
 
@@ -127,7 +126,11 @@ export function WsContextProvider({ dispatch, children }: Props) {
     ws.onclose = () => {
       console.log('[WsContext] Disconnected');
       setStatus('disconnected');
-      wsRef.current = null;
+      // Only clear the ref if it still points to THIS ws instance.
+      // If connect() was called again, wsRef.current already points to the new ws.
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
 
       // Reject all pending searches
       pendingSearches.current.forEach((p) => p.reject(new Error('WebSocket closed')));
@@ -189,9 +192,9 @@ export function WsContextProvider({ dispatch, children }: Props) {
     sendRaw({ type: 'unsubscribe', id });
   }, [sendRaw]);
 
-  const search = useCallback((query: string): Promise<string[]> => {
+  const search = useCallback((query: string): Promise<DpSearchEntry[]> => {
     const id = `search-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return new Promise<string[]>((resolve, reject) => {
+    return new Promise<DpSearchEntry[]>((resolve, reject) => {
       if (!sendRaw({ type: 'dpSearch', id, query })) {
         reject(new Error('Not connected'));
         return;

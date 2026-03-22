@@ -23,11 +23,13 @@ export function useWsSubscription(subscriptionId: string, dps: string[]): void {
 
     if (!sameAsBefore) {
       // Re-subscribe with the new DP list (server replaces the session)
+      console.log('[useWsSubscription] subscribing', subscriptionId, dps);
       subscribe(subscriptionId, dps);
       prevDpsRef.current = dps;
     }
 
     return () => {
+      console.log('[useWsSubscription] cleanup/unsubscribe', subscriptionId);
       unsubscribe(subscriptionId);
       prevDpsRef.current = [];
     };

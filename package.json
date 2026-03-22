@@ -103,7 +103,7 @@
     "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.6",
     "@types/node": "^25.5.0",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.109.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.56.0",
     "@vscode/test-cli": "^0.0.12",
@@ -137,7 +137,7 @@
       "minimatch": "10.2.2"
     },
     "@vscode/vsce": {
-      "minimatch": "10.2.2"
+      "minimatch": "3"
     }
   },
   "config": {

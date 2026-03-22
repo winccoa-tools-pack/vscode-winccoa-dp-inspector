@@ -1,95 +1,76 @@
-import React, { useEffect, useRef, useState } from 'react';
-import type { LiveValue, SeriesDataMap } from '../types';
+﻿import React, { useEffect, useRef, useState } from 'react';
+import type { DpMeta, SeriesData } from '../types';
 
 interface Props {
-  liveValues: Record<string, LiveValue>;
-  seriesData: SeriesDataMap;
+  dpMeta: Record<string, DpMeta>;
+  dpData: Record<string, SeriesData>;
 }
 
 function relativeTime(ts: number): string {
-  const diffMs = Date.now() - ts;
-  if (diffMs < 1000) return 'just now';
-  if (diffMs < 60_000) return `${(diffMs / 1000).toFixed(1)}s ago`;
-  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}min ago`;
-  return `${Math.floor(diffMs / 3_600_000)}h ago`;
+  if (ts === 0) return '—';
+  const d = Date.now() - ts;
+  if (d <  1_000)       return 'just now';
+  if (d < 60_000)       return `${(d / 1000).toFixed(1)}s ago`;
+  if (d < 3_600_000)    return `${Math.floor(d / 60_000)}min ago`;
+  return `${Math.floor(d / 3_600_000)}h ago`;
 }
 
-function qualityBadge(quality: 'good' | 'bad' | 'uncertain') {
-  const styles: Record<string, string> = {
-    good: 'var(--dp-status-good)',
-    bad: 'var(--dp-status-bad)',
-    uncertain: 'var(--dp-status-warn)',
-  };
-  return (
-    <span style={{ color: styles[quality] ?? 'inherit', fontSize: 11 }}>
-      {quality}
-    </span>
-  );
+function QualityBadge({ quality }: { quality: 'good' | 'bad' | 'uncertain' }) {
+  const color =
+    quality === 'good'      ? 'var(--dp-status-good)' :
+    quality === 'bad'       ? 'var(--dp-status-bad)'  :
+                              'var(--dp-status-warn)';
+  return <span style={{ color, fontSize: 11 }}>{quality}</span>;
 }
 
-/** Row component — tracks its own flash state. */
-function ValueRow({ lv, color }: { lv: LiveValue; color: string }) {
+function ValueRow({ dp, meta, data }: { dp: string; meta: DpMeta; data: SeriesData }) {
   const [flash, setFlash] = useState(false);
-  const prevTsRef = useRef(lv.ts);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [tick, setTick] = useState(0); // forces re-render for relative time
+  const [, setTick] = useState(0);
+  const prevTsRef = useRef(data.latestTs);
+  const timerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Flash on value-change
   useEffect(() => {
-    if (lv.ts !== prevTsRef.current) {
-      prevTsRef.current = lv.ts;
+    if (data.latestTs !== prevTsRef.current) {
+      prevTsRef.current = data.latestTs;
       setFlash(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setFlash(false), 600);
     }
-  }, [lv.ts]);
+  }, [data.latestTs]);
 
-  // Refresh relative timestamp every second
   useEffect(() => {
     const id = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Suppress unused variable warning
-  void tick;
-
   const displayValue =
-    lv.value === null ? '—' : typeof lv.value === 'boolean' ? String(lv.value) : String(lv.value);
+    data.latestValue === null     ? '—' :
+    typeof data.latestValue === 'boolean' ? (data.latestValue ? 'true' : 'false') :
+    String(data.latestValue);
 
-  const shortName = lv.dp.split(':').pop() ?? lv.dp;
+  const shortName = dp.split(':').pop() ?? dp;
 
   return (
     <tr className={`value-row${flash ? ' value-row-flash' : ''}`}>
-      <td className="value-cell value-cell-dp" title={lv.dp}>
-        <span
-          className="dp-chip-dot"
-          style={{ background: color, display: 'inline-block', marginRight: 6 }}
-        />
-        <span>{shortName}</span>
+      <td className="value-cell" title={dp}>
+        <span className="dp-chip-dot" style={{ background: meta.color }} />
+        {shortName}
       </td>
-      <td className="value-cell value-cell-value" title={displayValue}>
-        {displayValue}
-      </td>
-      <td className="value-cell value-cell-unit">
-        {lv.unit ?? ''}
-      </td>
-      <td className="value-cell value-cell-updated">
-        {relativeTime(lv.ts)}
-      </td>
-      <td className="value-cell value-cell-quality">
-        {qualityBadge(lv.quality)}
-      </td>
+      <td className="value-cell value-cell-value">{displayValue}</td>
+      <td className="value-cell" style={{ opacity: 0.6 }}>{meta.unit ?? ''}</td>
+      <td className="value-cell" style={{ opacity: 0.6 }}>{relativeTime(data.latestTs)}</td>
+      <td className="value-cell"><QualityBadge quality={data.quality} /></td>
     </tr>
   );
 }
 
-export function LiveValueTable({ liveValues, seriesData }: Props) {
-  const rows = Object.values(liveValues);
+export function LiveValueTable({ dpMeta, dpData }: Props) {
+  const dps = Object.keys(dpMeta);
 
-  if (rows.length === 0) {
+  if (dps.length === 0) {
     return (
       <div className="live-table-empty">
-        No active subscriptions. Add DPs to a chart group to start monitoring.
+        Add DPs to a group to start monitoring live values.
       </div>
     );
   }
@@ -99,7 +80,7 @@ export function LiveValueTable({ liveValues, seriesData }: Props) {
       <table className="live-table">
         <thead>
           <tr>
-            <th>DP Name</th>
+            <th>DP</th>
             <th>Value</th>
             <th>Unit</th>
             <th>Updated</th>
@@ -107,13 +88,12 @@ export function LiveValueTable({ liveValues, seriesData }: Props) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((lv) => (
-            <ValueRow
-              key={lv.dp}
-              lv={lv}
-              color={seriesData[lv.dp]?.color ?? 'var(--vscode-foreground)'}
-            />
-          ))}
+          {dps.map((dp) => {
+            const meta = dpMeta[dp];
+            const data = dpData[dp];
+            if (!meta || !data) return null;
+            return <ValueRow key={dp} dp={dp} meta={meta} data={data} />;
+          })}
         </tbody>
       </table>
     </div>
