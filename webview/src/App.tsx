@@ -131,6 +131,7 @@ function AppShell({ state, dispatch }: ShellProps) {
                 dpMeta={state.dpMeta}
                 dpData={state.dpData}
                 dispatch={dispatch}
+                paused={state.paused}
               />
             ))}
             <button className="add-group-btn" onClick={handleAddGroup}>

@@ -82,6 +82,8 @@ export interface ChartGroup {
   name: string;
   dps: string[];
   timerange: TimeRange;
+  hiddenDps: string[];
+  height: number;
 }
 
 /** App settings (persisted). */
@@ -97,6 +99,7 @@ export interface AppSettings {
 /** Full app state. */
 export interface AppState {
   connected: boolean;
+  paused: boolean;
   groups: ChartGroup[];
   dpMeta: Record<string, DpMeta>;
   dpData: Record<string, SeriesData>;

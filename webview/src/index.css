@@ -89,6 +89,12 @@ body {
 }
 .toolbar-btn-danger:hover { background: rgba(244,67,54,.15); }
 .toolbar-btn-icon { padding: 2px 6px; }
+.toolbar-btn-paused {
+  background: var(--dp-status-warn);
+  border-color: var(--dp-status-warn);
+  color: #000;
+}
+.toolbar-btn-paused:hover { background: var(--dp-status-warn); filter: brightness(1.1); }
 
 /* ── Inputs ───────────────────────────────────────────────────────────────── */
 .toolbar-input {
@@ -395,3 +401,38 @@ select.toolbar-input { cursor: pointer; }
   letter-spacing: 0.02em;
   flex-shrink: 0;
 }
+/* ── Icons (lucide-react SVG) ─────────────────────────────────────────────── */
+.toolbar-btn svg { vertical-align: middle; }
+
+/* ── DP chip visibility state ─────────────────────────────────────────────── */
+.dp-chip-hidden {
+  opacity: 0.45;
+}
+.dp-chip-hidden .dp-chip-dot {
+  border: 1px solid currentColor;
+}
+.dp-chip-eye {
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.dp-chip-eye:hover { opacity: 1; }
+.dp-chip-label { cursor: pointer; }
+.dp-chip-label:hover { text-decoration: underline; }
+
+/* ── Resize handle ─────────────────────────────────────────────────────────── */
+.resize-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+  cursor: ns-resize;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+  border-top: 1px solid var(--dp-border);
+  user-select: none;
+}
+.resize-handle:hover { opacity: 0.8; }
+.resize-handle svg { opacity: 0.5; }

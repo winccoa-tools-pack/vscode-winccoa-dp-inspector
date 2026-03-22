@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import {
   Chart,
   LineController,
@@ -14,24 +14,88 @@ import { TIME_RANGE_MS } from '../types';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip);
 
+// ── Resolve CSS custom properties from the document (canvas ignores CSS vars) ─
+function cssVar(name: string, fallback: string): string {
+  const val = getComputedStyle(document.body).getPropertyValue(name).trim();
+  return val || fallback;
+}
+
+function themeColors() {
+  return {
+    fg:      cssVar('--vscode-foreground', '#cccccc'),
+    grid:    'rgba(128,128,128,0.18)',
+    tooltip: cssVar('--vscode-editorWidget-background', '#252526'),
+  };
+}
+
+// ── X-axis time config per timerange ─────────────────────────────────────────
+const TICK_CONFIG: Record<TimeRange, {
+  unit: 'second' | 'minute';
+  stepSize: number;
+  displayFormat: string;
+}> = {
+  '30s':   { unit: 'second', stepSize: 5,  displayFormat: ':ss' },
+  '2min':  { unit: 'second', stepSize: 20, displayFormat: 'mm:ss' },
+  '10min': { unit: 'minute', stepSize: 1,  displayFormat: 'HH:mm' },
+};
+
+// ── Dual-Y detection ──────────────────────────────────────────────────────────
+function detectYAxes(
+  dps: string[],
+  dpData: Record<string, SeriesData>,
+): Record<string, 'y' | 'y2'> {
+  if (dps.length < 2) return Object.fromEntries(dps.map((dp) => [dp, 'y']));
+
+  const ranges: Record<string, number> = {};
+  for (const dp of dps) {
+    const pts = dpData[dp]?.points ?? [];
+    if (pts.length === 0) { ranges[dp] = 1; continue; }
+    const values = pts.map((p) => p.y);
+    ranges[dp] = (Math.max(...values) - Math.min(...values)) || 1;
+  }
+
+  const maxRange = Math.max(...Object.values(ranges));
+  const minRange = Math.min(...Object.values(ranges));
+
+  // Only split axes if ranges differ by factor > 10
+  if (maxRange / minRange < 10) {
+    return Object.fromEntries(dps.map((dp) => [dp, 'y']));
+  }
+
+  const sorted = [...dps].sort((a, b) => ranges[b]! - ranges[a]!);
+  const axis1 = new Set(sorted.slice(0, Math.ceil(sorted.length / 2)));
+  return Object.fromEntries(dps.map((dp) => [dp, axis1.has(dp) ? 'y' : 'y2']));
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 interface Props {
   dps: string[];
   dpMeta: Record<string, DpMeta>;
   dpData: Record<string, SeriesData>;
+  dpHidden: string[];
   timerange: TimeRange;
+  height?: number;
+  paused?: boolean;
 }
 
-export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, timerange }: Props) {
+export const LineChart = React.memo(function LineChart({
+  dps, dpMeta, dpData, dpHidden, timerange, height = 120, paused = false,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart | null>(null);
+  const chartRef  = useRef<Chart | null>(null);
 
-  // ─── Create / recreate chart when DP list or timerange changes ────────────
+  // ── Create / recreate when DPs or timerange change ───────────────────────
   useEffect(() => {
     if (!canvasRef.current) return;
     chartRef.current?.destroy();
 
+    const { fg, grid, tooltip: tooltipBg } = themeColors();
     const windowMs = TIME_RANGE_MS[timerange];
     const now = Date.now();
+    const tick = TICK_CONFIG[timerange];
+    const yAxes = detectYAxes(dps, dpData);
+    const hasDualAxis = new Set(Object.values(yAxes)).size > 1;
 
     chartRef.current = new Chart(canvasRef.current, {
       type: 'line',
@@ -48,6 +112,8 @@ export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, ti
             fill: false,
             stepped: isStepped ? ('before' as const) : false,
             tension: 0,
+            yAxisID: yAxes[dp] ?? 'y',
+            hidden: dpHidden.includes(dp),
           };
         }),
       },
@@ -62,10 +128,10 @@ export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, ti
           legend: { display: false },
           tooltip: {
             enabled: true,
-            backgroundColor: 'var(--vscode-editorWidget-background, #252526)',
-            titleColor: 'var(--vscode-foreground, #ccc)',
-            bodyColor: 'var(--vscode-foreground, #ccc)',
-            borderColor: 'var(--vscode-panel-border, #444)',
+            backgroundColor: tooltipBg,
+            titleColor: fg,
+            bodyColor: fg,
+            borderColor: grid,
             borderWidth: 1,
           },
         },
@@ -74,23 +140,32 @@ export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, ti
             type: 'time',
             min: now - windowMs,
             max: now,
+            time: {
+              unit: tick.unit,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(({ stepSize: tick.stepSize, displayFormats: { [tick.unit]: tick.displayFormat } }) as any),
+            },
             ticks: {
-              color: 'var(--vscode-foreground, #ccc)',
+              color: fg,
               maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 6,
+              autoSkip: false,
               font: { size: 10 },
             },
-            grid: { color: 'var(--vscode-panel-border, #333)' },
+            grid: { color: grid },
           },
           y: {
-            ticks: {
-              color: 'var(--vscode-foreground, #ccc)',
-              font: { size: 10 },
-              maxTicksLimit: 5,
-            },
-            grid: { color: 'var(--vscode-panel-border, #333)' },
+            position: 'left',
+            ticks: { color: fg, font: { size: 10 }, maxTicksLimit: 5 },
+            grid: { color: grid },
           },
+          ...(hasDualAxis ? {
+            y2: {
+              type: 'linear',
+              position: 'right',
+              ticks: { color: fg, font: { size: 10 }, maxTicksLimit: 5 },
+              grid: { drawOnChartArea: false },
+            },
+          } : {}),
         },
       },
     });
@@ -102,19 +177,23 @@ export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, ti
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dps.join(','), timerange]);
 
-  // ─── Update data without full recreation ──────────────────────────────────
+  // ── Live data update (no recreation) ────────────────────────────────────
   useEffect(() => {
+    if (paused) return;
     const chart = chartRef.current;
     if (!chart) return;
 
     const windowMs = TIME_RANGE_MS[timerange];
     const now = Date.now();
+    const yAxes = detectYAxes(dps, dpData);
+    const hasDualAxis = new Set(Object.values(yAxes)).size > 1;
 
     chart.data.datasets.forEach((ds, i) => {
       const dp = dps[i];
-      if (dp && dpData[dp]) {
-        ds.data = dpData[dp].points as unknown as { x: number; y: number }[];
-      }
+      if (!dp) return;
+      if (dpData[dp]) ds.data = dpData[dp].points as unknown as { x: number; y: number }[];
+      (ds as { yAxisID?: string }).yAxisID = yAxes[dp] ?? 'y';
+      (ds as { hidden?: boolean }).hidden = dpHidden.includes(dp);
     });
 
     if (chart.options.scales?.x) {
@@ -122,12 +201,27 @@ export const LineChart = React.memo(function LineChart({ dps, dpMeta, dpData, ti
       chart.options.scales.x.max = now;
     }
 
+    // Add/remove y2 axis dynamically
+    if (hasDualAxis && !chart.options.scales?.['y2']) {
+      const { fg, grid } = themeColors();
+      if (chart.options.scales) {
+        chart.options.scales['y2'] = {
+          type: 'linear',
+          position: 'right',
+          ticks: { color: fg, font: { size: 10 }, maxTicksLimit: 5 },
+          grid: { drawOnChartArea: false, color: grid },
+        };
+      }
+    } else if (!hasDualAxis && chart.options.scales?.['y2']) {
+      delete chart.options.scales['y2'];
+    }
+
     chart.update('none');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dpData, timerange]);
+  }, [dpData, dpHidden, timerange, paused]);
 
   return (
-    <div style={{ height: 90, width: '100%', position: 'relative' }}>
+    <div style={{ height, width: '100%', position: 'relative' }}>
       <canvas ref={canvasRef} />
     </div>
   );
