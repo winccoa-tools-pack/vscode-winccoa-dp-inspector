@@ -6,8 +6,6 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
 
-**Live datapoint inspector for WinCC OA — subscribe to datapoints, watch values update in real-time, and visualize them as charts inside VS Code**
-
 [Features](#-features) • [Installation](#-installation) • [Known Issues](#-known-issues)
 
 </div>
@@ -29,6 +27,14 @@
 ## 🎬 See It In Action
 
 <!-- GIF coming soon -->
+
+---
+
+## 📥 Installation
+
+1. Install the extension from the VS Code Marketplace
+2. Open a WinCC OA project via the **WinCC OA Project Admin** extension
+3. Run `Ctrl+Shift+P` → `WinCC OA: Open DP Inspector` — the setup wizard starts automatically
 
 ---
 
@@ -63,7 +69,7 @@
 | `winccoa.dpInspector.host` | `localhost` | WebSocket server hostname |
 | `winccoa.dpInspector.port` | `4712` | WebSocket server port |
 | `winccoa.dpInspector.server.repoUrl` | GitHub URL | Git repository to clone for setup |
-| `winccoa.dpInspector.server.branch` | `feature/dp-inspector-0.1.0` | Branch to clone/pull during setup or rebuild |
+| `winccoa.dpInspector.server.branch` | `main` | Branch to clone/pull during setup or rebuild |
 
 💡 **Tip**: Use `winccoa.dpInspector.server.branch` to pin to a specific server version.
 
@@ -74,8 +80,8 @@
 ### Current Limitations
 
 1. **Branch Setting Default**:
-    - Default branch is `feature/dp-inspector-0.1.0` (not `main`) — the server repository has not yet had a stable release
-    - Status: Will be updated once a stable release is published
+    - Default branch is `main`
+    - Change via `winccoa.dpInspector.server.branch` if you need a specific version
 
 2. **File Re-Activation After Rebuild**:
     - If the server is rebuilt while the DP Inspector panel is open, the WebSocket connection may drop and not auto-reconnect
@@ -113,7 +119,7 @@ Access via `Ctrl+Shift+P`:
 
 ## 🏗️ Architecture
 
-```
+```text
 WinCC OA Runtime
   └── Node.js Manager  (javascript/dpInspectorServer/dist/index.js)
         └── WebSocket Server :4712
