@@ -42,9 +42,7 @@ export class DpInspectorPanel {
             {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                localResourceRoots: [
-                    vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview'),
-                ],
+                localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
             },
         );
 

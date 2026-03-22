@@ -180,40 +180,37 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     // ── Setup command ─────────────────────────────────────────────────────────
-    const setupCommand = vscode.commands.registerCommand(
-        'winccoa.dpInspector.setup',
-        async () => {
-            ExtensionOutputChannel.info('Extension', 'Running server setup');
+    const setupCommand = vscode.commands.registerCommand('winccoa.dpInspector.setup', async () => {
+        ExtensionOutputChannel.info('Extension', 'Running server setup');
 
-            const project = getCurrentProjectInfo();
-            if (!project?.projectDir) {
-                vscode.window.showErrorMessage(
-                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
-                );
+        const project = getCurrentProjectInfo();
+        if (!project?.projectDir) {
+            vscode.window.showErrorMessage(
+                'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+            );
+            return;
+        }
+
+        const status = checkServerStatus(project.projectDir);
+        if (status.isInstalled) {
+            const answer = await vscode.window.showWarningMessage(
+                `DP Inspector Server is already installed at ${status.serverPath}. Re-install?`,
+                'Re-install',
+                'Cancel',
+            );
+            if (answer !== 'Re-install') {
                 return;
             }
+        }
 
-            const status = checkServerStatus(project.projectDir);
-            if (status.isInstalled) {
-                const answer = await vscode.window.showWarningMessage(
-                    `DP Inspector Server is already installed at ${status.serverPath}. Re-install?`,
-                    'Re-install',
-                    'Cancel',
-                );
-                if (answer !== 'Re-install') {
-                    return;
-                }
-            }
-
-            try {
-                await runSetup(project);
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
-                vscode.window.showErrorMessage(`DP Inspector Server setup failed: ${msg}`);
-            }
-        },
-    );
+        try {
+            await runSetup(project);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
+            vscode.window.showErrorMessage(`DP Inspector Server setup failed: ${msg}`);
+        }
+    });
 
     // ── Rebuild command ───────────────────────────────────────────────────────
     const rebuildCommand = vscode.commands.registerCommand(

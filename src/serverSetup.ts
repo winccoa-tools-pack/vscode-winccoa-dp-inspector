@@ -19,8 +19,7 @@ import type { ProjectInfo } from './otherExtensions';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 /** Default server repository URL (configurable via settings). */
-const DEFAULT_REPO_URL =
-    'https://github.com/winccoa-tools-pack/winccoa-dp-inspector-server';
+const DEFAULT_REPO_URL = 'https://github.com/winccoa-tools-pack/winccoa-dp-inspector-server';
 
 /** Default branch to clone/pull (configurable via settings). */
 const DEFAULT_BRANCH = 'main';
@@ -137,13 +136,7 @@ export async function runSetup(project: ProjectInfo): Promise<void> {
             );
 
             // ── Step 3: npm ci (needs devDeps for tsc) ───────────────────────
-            await runCmd(
-                'npm',
-                ['ci'],
-                serverInstallPath,
-                progress,
-                'Installing dependencies…',
-            );
+            await runCmd('npm', ['ci'], serverInstallPath, progress, 'Installing dependencies…');
 
             // ── Step 4: Build ─────────────────────────────────────────────────
             await runCmd('npm', ['run', 'build'], serverInstallPath, progress, 'Building server…');
@@ -239,13 +232,7 @@ export async function runRebuild(project: ProjectInfo): Promise<void> {
             }
 
             // ── Step 2: npm ci ────────────────────────────────────────────────
-            await runCmd(
-                'npm',
-                ['ci'],
-                serverInstallPath,
-                progress,
-                'Installing dependencies…',
-            );
+            await runCmd('npm', ['ci'], serverInstallPath, progress, 'Installing dependencies…');
 
             // ── Step 3: Build ─────────────────────────────────────────────────
             await runCmd('npm', ['run', 'build'], serverInstallPath, progress, 'Building server…');
@@ -279,7 +266,10 @@ async function addManagerViaPmon(project: ProjectInfo, progsPath: string): Promi
 
     if (projectId && version) {
         try {
-            ExtensionOutputChannel.info('ServerSetup', `Adding manager via PMON (project: ${projectId}, version: ${version})`);
+            ExtensionOutputChannel.info(
+                'ServerSetup',
+                `Adding manager via PMON (project: ${projectId}, version: ${version})`,
+            );
             const pmon = new PmonComponent();
             pmon.setVersion(version);
 
@@ -290,7 +280,10 @@ async function addManagerViaPmon(project: ProjectInfo, progsPath: string): Promi
                 (m) => m.component === 'node' && m.startOptions?.includes(SERVER_DIR_NAME),
             );
             if (exists) {
-                ExtensionOutputChannel.info('ServerSetup', 'Manager already registered in PMON — skipping');
+                ExtensionOutputChannel.info(
+                    'ServerSetup',
+                    'Manager already registered in PMON — skipping',
+                );
                 return;
             }
 
@@ -306,7 +299,10 @@ async function addManagerViaPmon(project: ProjectInfo, progsPath: string): Promi
             const exitCode = await pmon.insertManagerAt(managerOptions, projectId, managers.length);
 
             if (exitCode === 0) {
-                ExtensionOutputChannel.info('ServerSetup', '✅ Manager added via PMON successfully');
+                ExtensionOutputChannel.info(
+                    'ServerSetup',
+                    '✅ Manager added via PMON successfully',
+                );
                 return; // done — also write progs as persistent record
             } else {
                 throw new Error(`PMON insertManagerAt exited with code ${exitCode}`);
