@@ -19,8 +19,37 @@ import { EXTENSION_CONFIG_SECTION, CORE_EXTENSION_ID } from './const';
 export interface ProjectInfo {
     /** The display name of the project */
     name: string;
+    /** Project ID (folder name used by PMON) */
+    id?: string;
+    /** WinCC OA version (e.g. "3.20") */
+    version?: string;
     /** The installation path of WinCC OA for this project */
     oaInstallPath: string;
+    /** The absolute filesystem path to the WinCC OA project directory (contains config/, javascript/, …). */
+    projectDir?: string;
+}
+
+/**
+ * Returns the filesystem path of the currently active WinCC OA project directory.
+ * Uses the `projectDir` property exposed by the Project Admin extension API.
+ */
+export function getCurrentProjectPath(): string | undefined {
+    const api = getCoreApi() as { getCurrentProject?: () => ProjectInfo | undefined } | null;
+    if (!api) {
+        return undefined;
+    }
+    return api.getCurrentProject?.()?.projectDir;
+}
+
+/**
+ * Returns the full ProjectInfo of the currently active WinCC OA project.
+ */
+export function getCurrentProjectInfo(): ProjectInfo | undefined {
+    const api = getCoreApi() as { getCurrentProject?: () => ProjectInfo | undefined } | null;
+    if (!api) {
+        return undefined;
+    }
+    return api.getCurrentProject?.();
 }
 
 /**

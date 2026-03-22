@@ -18,10 +18,29 @@ Makefile
 # Source and configs
 src/**
 tsconfig.json
+tsconfig.webpack.json
 tsconfig.tsbuildinfo
+webpack.config.js
+eslint.config.cjs
+eslint.config.mjs
+postcss.config.js
+.prettierignore
+.prettierrc*
 
 # Node modules (safe because we bundle)
 node_modules/**
+
+# Webview source (built output is in dist/webview/)
+webview/**
+
+# Test and dev scripts
+scripts/**
+docs/**
+bin/**
+CONTRIBUTING.md
+SECURITY.md
+FUNDING.yml
+.vscode-test.mjs
 
 # Exceptions for assets
 !resources/**

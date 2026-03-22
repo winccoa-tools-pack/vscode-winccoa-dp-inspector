@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+
+  <!-- LAYER 1 · Yellow border -->
+  <rect width="256" height="256" rx="32" fill="#F2D43D"/>
+
+  <!-- LAYER 2 · Blue inner field -->
+  <rect x="10" y="10" width="236" height="236" rx="26" fill="#173A5E"/>
+
+  <!-- Y-axis -->
+  <line x1="46" y1="51" x2="46" y2="209"
+    stroke="#F2D43D" stroke-width="11" stroke-linecap="round"/>
+
+  <!-- X-axis -->
+  <line x1="46" y1="209" x2="216" y2="209"
+    stroke="#F2D43D" stroke-width="11" stroke-linecap="round"/>
+
+  <!-- Step chart line -->
+  <polyline
+    points="46,183  76,183  76,121  106,121  106,155  146,155  146,95  186,95  186,135  216,135"
+    fill="none" stroke="#F2D43D" stroke-width="11"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Live dot at end -->
+  <circle cx="216" cy="135" r="13" fill="#F2D43D"/>
+  <circle cx="216" cy="135" r="6" fill="#173A5E"/>
+
+</svg>
