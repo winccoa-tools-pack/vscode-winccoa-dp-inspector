@@ -30,6 +30,7 @@ export const initialState: AppState = {
   dpMeta: {},
   dpData: {},
   settings: DEFAULT_SETTINGS,
+  recentDps: [],
 };
 
 // â”€â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -145,7 +146,9 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!dpData[dp]) {
         dpData[dp] = { points: [], latestValue: null, latestTs: 0, quality: 'good' };
       }
-      return { ...state, groups, dpMeta, dpData };
+      // Push to recentDps (deduplicated, newest first, max 30)
+      const recentDps = [dp, ...state.recentDps.filter((d) => d !== dp)].slice(0, 30);
+      return { ...state, groups, dpMeta, dpData, recentDps };
     }
 
     case 'REMOVE_DP': {
@@ -210,7 +213,7 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'LOAD_STATE': {
-      const { groups, dpMeta = {}, settings } = action.payload;
+      const { groups, dpMeta = {}, settings, recentDps = [] } = action.payload;
       // Migrate old persisted groups that lack new fields
       const migratedGroups = groups.map((g) => ({
         ...g,
@@ -221,7 +224,7 @@ export function reducer(state: AppState, action: Action): AppState {
       for (const dp of Object.keys(dpMeta)) {
         dpData[dp] = { points: [], latestValue: null, latestTs: 0, quality: 'good' };
       }
-      return { ...state, groups: migratedGroups, dpMeta, dpData, settings: { ...DEFAULT_SETTINGS, ...settings } };
+      return { ...state, groups: migratedGroups, dpMeta, dpData, settings: { ...DEFAULT_SETTINGS, ...settings }, recentDps };
     }
 
     default:

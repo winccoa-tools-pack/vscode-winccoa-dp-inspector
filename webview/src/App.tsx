@@ -154,6 +154,8 @@ function AppShell({ state, dispatch }: ShellProps) {
       {showAddDp && (
         <AddDpDialog
           groups={state.groups}
+          dpMeta={state.dpMeta}
+          recentDps={state.recentDps}
           dispatch={dispatch}
           onClose={() => setShowAddDp(false)}
         />

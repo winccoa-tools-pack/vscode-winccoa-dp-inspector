@@ -395,6 +395,10 @@ select.toolbar-input { cursor: pointer; }
   gap: 8px;
 }
 .dp-result-row:hover { background: var(--dp-row-hover); }
+.dp-result-row--highlighted { background: var(--dp-row-hover); outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+.dp-result-row--added { opacity: 0.45; cursor: default; }
+.dp-already-tag { font-size: 10px; color: var(--dp-status-good); flex-shrink: 0; }
+.dialog-hint-section { opacity: 0.5; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 14px 2px; text-align: left; }
 .dp-result-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-type-badge {
   font-size: 10px;

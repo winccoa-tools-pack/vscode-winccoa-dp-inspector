@@ -104,6 +104,7 @@ export interface AppState {
   dpMeta: Record<string, DpMeta>;
   dpData: Record<string, SeriesData>;
   settings: AppSettings;
+  recentDps: string[];
 }
 
 /** Shape persisted to workspaceState. */
@@ -111,6 +112,7 @@ export interface PersistedAppState {
   groups: ChartGroup[];
   dpMeta: Record<string, DpMeta>;
   settings: AppSettings;
+  recentDps?: string[];
 }
 
 /** Snapshot of one DP's latest value shown in the live table. */
