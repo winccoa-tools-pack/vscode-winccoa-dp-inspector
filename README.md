@@ -14,6 +14,12 @@
 
 ---
 
+> **⚠️ EARLY PROTOTYPE — Expect Bugs**
+>
+> This extension is in its **very first prototype stage**. Core features work, but the codebase is young, APIs may change, and you will likely encounter rough edges. Do not use in production environments. Feedback and bug reports are very welcome!
+
+---
+
 > **Latest Update (v0.2.0):** Auto-Setup wizard with PMON integration — the server manager is installed and started at runtime without a project restart. See [CHANGELOG](CHANGELOG.md) for details.
 >
 > **Tip:** If the extension doesn't work as expected, try `Ctrl+Shift+P` → `Reload Window` to refresh.
