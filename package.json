@@ -35,6 +35,7 @@
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
+  "preview": true,
   "private": false,
   "contributes": {
     "commands": [

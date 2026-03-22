@@ -1,177 +1,150 @@
-# WinCC OA VS Code Extension Template
+# WinCC OA DP Inspector
 
 <div align="center">
 
-![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/template-vscode-extension?label=version)
-![License](https://img.shields.io/github/license/winccoa-tools-pack/template-vscode-extension)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
-[![Coverage](https://codecov.io/gh/winccoa-tools-pack/template-vscode-extension/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/template-vscode-extension)
-[![Quality gate](https://github.com/winccoa-tools-pack/template-vscode-extension/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/template-vscode-extension/actions/workflows/ci-cd.yml)
-[![Released](https://github.com/winccoa-tools-pack/template-vscode-extension/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/template-vscode-extension/actions/workflows/release.yml)
+
+**Live datapoint inspector for WinCC OA — subscribe to datapoints, watch values update in real-time, and visualize them as charts inside VS Code**
+
+[Features](#-features) • [Installation](#-installation) • [Known Issues](#-known-issues)
 
 </div>
 
-Template repository for building **VS Code extensions for WinCC OA**, with a GitFlow-style branching model and a CI → prerelease → release pipeline.
+---
 
-## Quick start
+> **Latest Update (v0.2.0):** Auto-Setup wizard with PMON integration — the server manager is installed and started at runtime without a project restart. See [CHANGELOG](CHANGELOG.md) for details.
+>
+> **Tip:** If the extension doesn't work as expected, try `Ctrl+Shift+P` → `Reload Window` to refresh.
 
-Create a new repository from this template, then:
+---
 
-```bash
-npm install
-npm run compile
-npm run test:unit
+## 🎬 See It In Action
+
+<!-- GIF coming soon -->
+
+---
+
+## ✨ Features
+
+### 📡 Live DP Monitoring
+
+- **Real-time subscriptions**: Subscribe to any datapoint element and watch values update instantly
+- **Wildcard search**: Search across all datapoints using WinCC OA patterns (e.g. `System1:Pump*`)
+- **Multiple subscriptions**: Monitor multiple datapoints simultaneously in a single panel
+
+### 📈 Charts
+
+- **Time-series visualization**: Numeric DP values are rendered as live charts
+- **Multiple series**: Compare several datapoints in one chart view
+
+### 🧙 Auto-Setup Wizard
+
+- **One-Click Installation**: Automatically clones, builds, and registers the required Node.js server
+- **PMON Integration**: Server manager is added at runtime via PMON — **no project restart required**
+- **Rebuild / Update**: Pull latest server changes and rebuild with a single command
+- **Status Check**: View installation status and manager entry at any time
+
+---
+
+## ⚙️ Configuration
+
+### Essential Settings
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `winccoa.dpInspector.host` | `localhost` | WebSocket server hostname |
+| `winccoa.dpInspector.port` | `4712` | WebSocket server port |
+| `winccoa.dpInspector.server.repoUrl` | GitHub URL | Git repository to clone for setup |
+| `winccoa.dpInspector.server.branch` | `feature/dp-inspector-0.1.0` | Branch to clone/pull during setup or rebuild |
+
+💡 **Tip**: Use `winccoa.dpInspector.server.branch` to pin to a specific server version.
+
+---
+
+## 🐛 Known Issues
+
+### Current Limitations
+
+1. **Branch Setting Default**:
+    - Default branch is `feature/dp-inspector-0.1.0` (not `main`) — the server repository has not yet had a stable release
+    - Status: Will be updated once a stable release is published
+
+2. **File Re-Activation After Rebuild**:
+    - If the server is rebuilt while the DP Inspector panel is open, the WebSocket connection may drop and not auto-reconnect
+    - Workaround: Close and reopen the DP Inspector panel after a rebuild
+
+3. **Wildcard Performance**:
+    - Very broad patterns (e.g. `*`) on large projects may return thousands of results and slow down the UI
+    - Recommendation: Use system-prefixed patterns like `System1:Pump*` for better performance
+
+### Reporting Bugs
+
+Found an issue? Please report it with:
+
+- WinCC OA version
+- Extension version (`0.2.0`)
+- Steps to reproduce
+- Output from the extension output channel (`WinCC OA DP Inspector`)
+
+[Report Issue on GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector/issues)
+
+---
+
+## 📝 Commands
+
+Access via `Ctrl+Shift+P`:
+
+| Command | Description |
+| --- | --- |
+| `WinCC OA: Open DP Inspector` | Opens the DP Inspector panel (with auto-setup prompt if needed) |
+| `WinCC OA: DP Inspector - Setup Server` | Full setup: clone → build → register manager via PMON |
+| `WinCC OA: DP Inspector - Rebuild / Update Server` | Pull latest changes and rebuild the server |
+| `WinCC OA: DP Inspector - Show Server Status` | Shows installation status and WinCC OA manager entry |
+
+---
+
+## 🏗️ Architecture
+
+```
+WinCC OA Runtime
+  └── Node.js Manager  (javascript/dpInspectorServer/dist/index.js)
+        └── WebSocket Server :4712
+              ↕  JSON protocol
+VS Code Extension
+  └── DP Inspector Webview (React + Vite)
 ```
 
-Run locally in VS Code:
-
-To launch this extension, press **F5** in your VS Code instance to open an **Extension Development Host**.
-
-## Customize the template
-
-When you create a new repository from this template, update these placeholders first.
-
-Update values in `package.json`:
-
-- `name`, `displayName`, `description`
-- `publisher` (VS Code Marketplace publisher ID) - **Note:** It's recommended to use the organization's publisher for easier trust and no need for individual VSCE tokens.
-- `icon` (this repo includes a placeholder at `resources/icon.png` — replace it with your own 128x128 (or 256x256) PNG)
-- `repository.url`, `bugs.url`, `homepage` (remove `<your-repository>` placeholders)
-- `activationEvents` and `contributes.commands[].command`
-
-Example:
-
-```bash
-npm pkg set name='vscode-my-extension'
-npm pkg set displayName='WinCC OA — My Extension'
-# Optional: Set your own publisher if not using the organization's
-# npm pkg set publisher='my-publisher'  # Requires VSCE_PAT and user trust
-```
-
-Additionally, this template includes a dummy "Hello World" project. Search for and replace the following placeholders throughout the codebase:
-
-- `'hello-world'` → your extension's identifier or name
-- `'<your-repository>'` → your repository name
-
-Also, update `src/const.ts` with the appropriate values for `EXTENSION_ID`, `EXTENSION_NAME`, and `EXTENSION_CONFIG_SECTION`.
-
-### Template checklist
-
-- Replace the placeholder icon in `resources/icon.png`.
-- Replace all occurrences of `<your-repository>` with your actual repository name.
-- Update the Marketplace identifiers (`publisher`, `name`) before publishing.
-- Update links in `package.json` (`repository`, `bugs`, `homepage`) so they point to your new repo.
-
-## Development scripts
-
-These scripts exist in this template:
-
-- Build: `npm run compile`
-- Watch: `npm run watch`
-- Lint: `npm run lint` and `npm run lint:md`
-- Format check: `npm run format:check`
-- Unit tests: `npm run test:unit`
-- Integration tests (WinCC OA container): `npm run ci:integration`
-
-## Branching model (GitFlow)
-
-- `develop` is the default branch (day-to-day work)
-- `main` is the stable branch (releases)
-- `feature/*` / `bugfix/*` target `develop`
-- `release/vX.Y.Z` and `hotfix/vX.Y.Z` target `main`
-
-Automation overview:
-
-- PR validation: `.github/workflows/gitflow-validation.yml`
-- Upmerge `main` → `develop` via PR: `.github/workflows/gitflow.yml`
-- Create release/hotfix branches + PR: `.github/workflows/create-release-branch.yml`
-  - Important: this workflow does **not** update `CHANGELOG.md`.
-
-More details:
-
-- `docs/automation/GITFLOW_WORKFLOW.md`
-
-## CI + Integration tests
-
-- CI pipeline: `.github/workflows/ci-cd.yml`
-- WinCC OA integration tests: `.github/workflows/integration-winccoa.yml`
-
-More details:
-
-- `docs/automation/CI-INTEGRATION.md`
-
-## Pre-release + release pipeline
-
-This template uses a **tested-artifact flow**:
-
-1. A prerelease workflow builds/tests and uploads a VSIX to a GitHub **pre-release**.
-2. The stable release workflow requires that prerelease artifact and republishes that tested VSIX.
-
-Workflows:
-
-- `.github/workflows/pre-release.yml` (alpha prerelease on PRs to `main`)
-- `.github/workflows/release.yml` + `.github/workflows/release-reusable.yml` (stable release from `main`)
-
-Marketplace publishing:
-
-- Optional secret: `VSCE_PAT` (if set, the release workflow publishes to the VS Code Marketplace).
-
-## First-time setup checklist
-
-- Fill out the vision document: `docs/dev/VISION.md`.
-- Update placeholders in `package.json` (name, publisher, repo URLs, command IDs).
-- Decide on your default branch strategy (this template assumes `develop` is default).
-- Configure secrets (as needed):
-  - `VSCE_PAT` (optional) to publish to VS Code Marketplace during stable release.
-  - `REPO_ADMIN_TOKEN` (recommended) to let `.github/workflows/apply-settings-and-rulesets.yml` apply `.github/repository.settings.yml` and `.github/rulesets/*`.
-  - `DOCKER_USER` + `DOCKER_PASSWORD` (optional) only if your WinCC OA image is private on Docker Hub.
-- Run Actions once to verify everything:
-  - `CI/CD Pipeline`
-  - `PR Labels` (open a PR to see labels apply)
-  - `Git Flow Validation` (open a PR to see validation)
-  - `Integration Tests - WinCC OA` (optional; requires a working image)
-
-## Repo settings + rulesets automation
-
-This template can apply repository settings + rulesets from YAML:
-
-- Source of truth:
-  - `.github/repository.settings.yml`
-  - `.github/rulesets/*.yml`
-- Workflow:
-  - `.github/workflows/apply-settings-and-rulesets.yml`
-
-To apply settings/rulesets, provide an admin-capable token:
-
-- Secret: `REPO_ADMIN_TOKEN`
-  - Classic PAT: scope `repo` (and authorize SSO if required)
-  - Fine-grained PAT: repository access + **Administration: Read and write**
+The server runs as a WinCC OA JavaScript Manager with full access to the runtime API (`dpConnect`, `dpNames`, `dpElementType`). The extension connects via WebSocket and renders live values in a Webview panel.
 
 ---
 
 ## 🛠️ Requirements
 
-- **VS Code:** 1.107.1 or higher
-- **WinCC OA:** 3.19+ installed on your system
+- **VS Code:** 1.109.2 or higher
+- **WinCC OA:** 3.19+ (running project with JavaScript Manager support)
+- **Node.js:** 14+ (for the dp-inspector-server runtime)
+- **WinCC OA Project Admin Extension:** Required for automatic project detection and PMON integration
 
 ---
 
-## License
+## 📄 License
 
-MIT License. See <https://github.com/winccoa-tools-pack/.github/blob/main/LICENSE>.
-
----
-
-## ⚠️ Disclaimer
-
-**WinCC OA** and **Siemens** are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project created to enhance the development experience for WinCC OA developers.
+This project is licensed under the **MIT License**.
 
 ---
 
-## Quick Links
+## 📜 Disclaimer
 
-• [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mPokornyETM.wincc-oa-tools-pack)
+WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project.
 
 ---
 
-<center>Made with ❤️ for and by the WinCC OA community</center>
+<div align="center">
+
+Made with ❤️ for the WinCC OA community
+
+[GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector) • [Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector/issues) • [WinCC OA Docs](https://www.winccoa.com)
+
+</div>
