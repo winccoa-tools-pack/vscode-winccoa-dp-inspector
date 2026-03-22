@@ -94,6 +94,7 @@ export interface AppSettings {
   defaultTimerange: TimeRange;
   interpolation: Interpolation;
   autoReconnect: boolean;
+  maxPoints: number;
 }
 
 /** Full app state. */

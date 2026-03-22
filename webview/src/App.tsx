@@ -7,6 +7,7 @@ import { ChartGroup } from './components/ChartGroup';
 import { LiveValueTable } from './components/LiveValueTable';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { AddDpDialog } from './components/AddDpDialog';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { AppState } from './types';
 import type { Action } from './store/reducer';
 
@@ -42,6 +43,7 @@ function AppShell({ state, dispatch }: ShellProps) {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAddDp, setShowAddDp]       = useState(false);
+  const [liveTableCollapsed, setLiveTableCollapsed] = useState(false);
 
   // ── Bridge messages from extension host ─────────────────────────────────
   useEffect(() => {
@@ -142,12 +144,15 @@ function AppShell({ state, dispatch }: ShellProps) {
       </div>
 
       {allDps.length > 0 && (
-        <div className="live-table-section">
-          <div className="live-table-header">
-            Live Values
+        <div className={`live-table-section${liveTableCollapsed ? ' live-table-section--collapsed' : ''}`}>
+          <div className="live-table-header" onClick={() => setLiveTableCollapsed(c => !c)} style={{ cursor: 'pointer' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {liveTableCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+              Live Values
+            </span>
             <span className="live-table-count">{allDps.length} DP{allDps.length !== 1 ? 's' : ''}</span>
           </div>
-          <LiveValueTable dpMeta={state.dpMeta} dpData={state.dpData} />
+          {!liveTableCollapsed && <LiveValueTable dpMeta={state.dpMeta} dpData={state.dpData} />}
         </div>
       )}
 

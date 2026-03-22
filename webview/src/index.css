@@ -271,6 +271,10 @@ select.toolbar-input { cursor: pointer; }
   display: flex;
   flex-direction: column;
 }
+.live-table-section--collapsed {
+  max-height: none;
+  overflow: visible;
+}
 .live-table-header {
   display: flex;
   justify-content: space-between;
@@ -281,6 +285,7 @@ select.toolbar-input { cursor: pointer; }
   background: var(--dp-table-header);
   border-bottom: 1px solid var(--dp-border);
   flex-shrink: 0;
+  user-select: none;
 }
 .live-table-count { opacity: 0.5; font-weight: normal; }
 .live-table-container { overflow-y: auto; flex: 1; }

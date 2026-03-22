@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultTimerange: '2min',
   interpolation: 'step',
   autoReconnect: true,
+  maxPoints: 2000,
 };
 
 export const initialState: AppState = {
@@ -66,13 +67,14 @@ function dpsStillNeeded(groups: ChartGroup[]): Set<string> {
   return s;
 }
 
-const MAX_POINTS = 2000;
+const MAX_POINTS = 2000; // fallback if settings not loaded yet
 
 function appendPoint(
   existing: SeriesData | undefined,
   value: number | string | boolean | null,
   ts: number,
   quality: string,
+  maxPoints: number = MAX_POINTS,
 ): SeriesData {
   const numValue =
     typeof value === 'number' ? value
@@ -81,7 +83,7 @@ function appendPoint(
 
   const prev = existing?.points ?? [];
   const next = numValue !== null
-    ? [...prev, { x: ts, y: numValue }].slice(-MAX_POINTS)
+    ? [...prev, { x: ts, y: numValue }].slice(-maxPoints)
     : prev;
 
   return {
@@ -167,7 +169,7 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!state.dpData[dp]) return state;
       return {
         ...state,
-        dpData: { ...state.dpData, [dp]: appendPoint(state.dpData[dp], value, ts, quality) },
+        dpData: { ...state.dpData, [dp]: appendPoint(state.dpData[dp], value, ts, quality, state.settings.maxPoints) },
       };
     }
 

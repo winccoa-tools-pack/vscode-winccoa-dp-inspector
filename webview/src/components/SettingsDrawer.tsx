@@ -93,6 +93,20 @@ export function SettingsDrawer({ settings, dispatch }: Props) {
               <option value="linear">Linear</option>
             </select>
           </label>
+          <label>
+            Buffer size (points per DP)
+            <input
+              className="toolbar-input"
+              type="number"
+              min={100}
+              max={50000}
+              step={500}
+              value={settings.maxPoints}
+              onChange={(e) => update({ maxPoints: Math.max(100, parseInt(e.target.value, 10) || 2000) })}
+              style={{ width: 90 }}
+              title="How many data points to keep in memory per DP (default: 2000)"
+            />
+          </label>
           <label className="checkbox-label">
             <input
               type="checkbox"
