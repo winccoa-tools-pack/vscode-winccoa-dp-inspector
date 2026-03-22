@@ -53,7 +53,7 @@ function ValueRow({ dp, meta, data }: { dp: string; meta: DpMeta; data: SeriesDa
   return (
     <tr className={`value-row${flash ? ' value-row-flash' : ''}`}>
       <td className="value-cell" title={dp}>
-        <span className="dp-chip-dot" style={{ background: meta.color }} />
+        <span className="dp-chip-dot" style={{ background: meta.color, marginRight: 5 }} />
         {shortName}
       </td>
       <td className="value-cell value-cell-value">{displayValue}</td>

@@ -47,6 +47,7 @@ export type Action =
   | { type: 'LOAD_STATE'; payload: PersistedAppState }
   | { type: 'TOGGLE_DP_VISIBILITY'; payload: { groupId: string; dp: string } }
   | { type: 'SET_GROUP_HEIGHT'; payload: { groupId: string; height: number } }
+  | { type: 'CLEAR_GROUP_DATA'; payload: { groupId: string } }
   | { type: 'TOGGLE_PAUSE' };
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -194,6 +195,18 @@ export function reducer(state: AppState, action: Action): AppState {
         g.id === action.payload.groupId ? { ...g, height: action.payload.height } : g,
       );
       return { ...state, groups };
+    }
+
+    case 'CLEAR_GROUP_DATA': {
+      const group = state.groups.find((g) => g.id === action.payload.groupId);
+      if (!group) return state;
+      const dpData = { ...state.dpData };
+      for (const dp of group.dps) {
+        if (dpData[dp]) {
+          dpData[dp] = { ...dpData[dp], points: [] };
+        }
+      }
+      return { ...state, dpData };
     }
 
     case 'LOAD_STATE': {

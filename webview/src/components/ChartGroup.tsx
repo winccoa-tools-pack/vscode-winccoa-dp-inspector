@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Eye, EyeOff, X, Trash2, GripHorizontal, Plus } from 'lucide-react';
+import { Eye, EyeOff, X, Trash2, GripHorizontal, Plus, Eraser } from 'lucide-react';
 import type { ChartGroup as ChartGroupType, DpMeta, SeriesData, TimeRange } from '../types';
 import type { Action } from '../store/reducer';
 import { useWsSubscription } from '../hooks/useWsSubscription';
@@ -40,6 +40,10 @@ export function ChartGroup({ group, dpMeta, dpData, dispatch, paused = false }: 
 
   function handleRemoveGroup() {
     dispatch({ type: 'REMOVE_GROUP', payload: { id: group.id } });
+  }
+
+  function handleClearData() {
+    dispatch({ type: 'CLEAR_GROUP_DATA', payload: { groupId: group.id } });
   }
 
   function handleTimeRange(tr: TimeRange) {
@@ -153,6 +157,16 @@ export function ChartGroup({ group, dpMeta, dpData, dispatch, paused = false }: 
             </button>
           ))}
         </div>
+
+        <button
+          className="toolbar-btn toolbar-btn-icon"
+          onClick={handleClearData}
+          aria-label="Clear chart data"
+          title="Clear chart data"
+          style={{ borderColor: 'transparent', background: 'transparent' }}
+        >
+          <Eraser size={14} />
+        </button>
 
         <button
           className="toolbar-btn toolbar-btn-icon"
