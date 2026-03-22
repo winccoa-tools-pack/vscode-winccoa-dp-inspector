@@ -83,7 +83,7 @@
         },
         "winccoa.dpInspector.server.branch": {
           "type": "string",
-          "default": "feature/dp-inspector-0.1.0",
+          "default": "main",
           "description": "Git branch to clone / pull when running Setup or Rebuild (e.g. \"main\", \"develop\")."
         }
       }
