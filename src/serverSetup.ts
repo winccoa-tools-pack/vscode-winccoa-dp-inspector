@@ -38,7 +38,7 @@ const PROGS_ENTRY_MARKER = `${SERVER_DIR_NAME}/dist/index.js`;
  * The full progs line for the node manager.
  * Format: `<component> | <startMode> | <secondToKill> | <resetStartCounter> | <resetMin> | <options>`
  */
-const PROGS_ENTRY = `node             | always |      30 |        3 |        1 |${PROGS_ENTRY_MARKER}`;
+const PROGS_ENTRY = `node             | once   |      30 |        3 |        1 |${PROGS_ENTRY_MARKER}`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -296,7 +296,7 @@ async function addManagerViaPmon(project: ProjectInfo, progsPath: string): Promi
 
             const managerOptions: ProjEnvManagerOptions = {
                 component: 'node',
-                startMode: 2, // always
+                startMode: 1, // once
                 secondToKill: 30,
                 resetMin: 1,
                 resetStartCounter: 3,
