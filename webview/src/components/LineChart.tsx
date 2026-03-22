@@ -33,11 +33,18 @@ const TICK_CONFIG: Record<TimeRange, {
   unit: 'second' | 'minute';
   stepSize: number;
   displayFormat: string;
+  maxTicksLimit: number;
+  snapMs: number;        // snap max to this boundary so ticks stay stable
 }> = {
-  '30s':   { unit: 'second', stepSize: 5,  displayFormat: ':ss' },
-  '2min':  { unit: 'second', stepSize: 20, displayFormat: 'mm:ss' },
-  '10min': { unit: 'minute', stepSize: 1,  displayFormat: 'HH:mm' },
+  '30s':   { unit: 'second', stepSize: 5,  displayFormat: ':ss',   maxTicksLimit: 7, snapMs: 5_000   },
+  '2min':  { unit: 'second', stepSize: 30, displayFormat: 'mm:ss', maxTicksLimit: 5, snapMs: 30_000  },
+  '10min': { unit: 'minute', stepSize: 2,  displayFormat: 'HH:mm', maxTicksLimit: 6, snapMs: 120_000 },
 };
+
+/** Round ts UP to the nearest snapMs boundary so the axis window shifts in discrete steps. */
+function snapMax(ts: number, snapMs: number): number {
+  return Math.ceil(ts / snapMs) * snapMs;
+}
 
 // ── Dual-Y detection ──────────────────────────────────────────────────────────
 function detectYAxes(
@@ -91,9 +98,9 @@ export const LineChart = React.memo(function LineChart({
     chartRef.current?.destroy();
 
     const { fg, grid, tooltip: tooltipBg } = themeColors();
-    const windowMs = TIME_RANGE_MS[timerange];
-    const now = Date.now();
     const tick = TICK_CONFIG[timerange];
+    const windowMs = TIME_RANGE_MS[timerange];
+    const now = snapMax(Date.now(), tick.snapMs);
     const yAxes = detectYAxes(dps, dpData);
     const hasDualAxis = new Set(Object.values(yAxes)).size > 1;
 
@@ -148,7 +155,8 @@ export const LineChart = React.memo(function LineChart({
             ticks: {
               color: fg,
               maxRotation: 0,
-              autoSkip: false,
+              autoSkip: true,
+              maxTicksLimit: tick.maxTicksLimit,
               font: { size: 10 },
             },
             grid: { color: grid },
@@ -183,8 +191,9 @@ export const LineChart = React.memo(function LineChart({
     const chart = chartRef.current;
     if (!chart) return;
 
+    const tick = TICK_CONFIG[timerange];
     const windowMs = TIME_RANGE_MS[timerange];
-    const now = Date.now();
+    const now = snapMax(Date.now(), tick.snapMs);
     const yAxes = detectYAxes(dps, dpData);
     const hasDualAxis = new Set(Object.values(yAxes)).size > 1;
 
