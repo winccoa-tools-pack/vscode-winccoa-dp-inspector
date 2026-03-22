@@ -7,7 +7,8 @@ import { useWs, type WsStatus } from '../context/WsContext';
 interface Props {
   state: AppState;
   dispatch: (action: Action) => void;
-  onOpenSettings: () => void;
+  showSettings: boolean;
+  onToggleSettings: () => void;
   onAddDp: () => void;
 }
 
@@ -24,7 +25,7 @@ function StatusDot({ status }: { status: WsStatus }) {
   );
 }
 
-export function Toolbar({ state, dispatch, onOpenSettings, onAddDp }: Props) {
+export function Toolbar({ state, dispatch, showSettings, onToggleSettings, onAddDp }: Props) {
   const { status } = useWs();
 
   const statusText: Record<WsStatus, string> = {
@@ -60,7 +61,11 @@ export function Toolbar({ state, dispatch, onOpenSettings, onAddDp }: Props) {
             ? <><Play  size={13} style={{ marginRight: 4 }} />Resume</>
             : <><Pause size={13} style={{ marginRight: 4 }} />Pause</>}
         </button>
-        <button className="toolbar-btn toolbar-btn-ghost" onClick={onOpenSettings}>
+        <button
+          className={`toolbar-btn toolbar-btn-ghost${showSettings ? ' toolbar-btn-active' : ''}`}
+          onClick={onToggleSettings}
+          title={showSettings ? 'Close settings' : 'Open settings'}
+        >
           <Settings size={13} style={{ marginRight: 4 }} />
           Settings
         </button>

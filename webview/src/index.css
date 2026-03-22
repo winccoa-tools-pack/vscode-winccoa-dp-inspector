@@ -82,6 +82,10 @@ body {
   color: var(--dp-fg);
 }
 .toolbar-btn-ghost:hover { background: var(--dp-row-hover); }
+.toolbar-btn-active {
+  background: var(--vscode-toolbar-activeBackground, var(--dp-row-hover));
+  border-color: var(--vscode-focusBorder, var(--dp-border));
+}
 .toolbar-btn-danger {
   background: transparent;
   border-color: var(--dp-status-bad);

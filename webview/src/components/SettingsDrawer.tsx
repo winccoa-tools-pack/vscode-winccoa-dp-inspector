@@ -6,10 +6,9 @@ import { useWs } from '../context/WsContext';
 interface Props {
   settings: AppSettings;
   dispatch: React.Dispatch<Action>;
-  onClose: () => void;
 }
 
-export function SettingsDrawer({ settings, dispatch, onClose }: Props) {
+export function SettingsDrawer({ settings, dispatch }: Props) {
   const { connect, disconnect, status } = useWs();
 
   function update(partial: Partial<AppSettings>) {
@@ -20,7 +19,6 @@ export function SettingsDrawer({ settings, dispatch, onClose }: Props) {
     <div className="settings-drawer">
       <div className="settings-drawer-header">
         <span>Settings</span>
-        <button className="dialog-close" onClick={onClose} aria-label="Close settings">✕</button>
       </div>
 
       <div className="settings-grid">

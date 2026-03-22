@@ -102,7 +102,8 @@ function AppShell({ state, dispatch }: ShellProps) {
       <Toolbar
         state={state}
         dispatch={dispatch}
-        onOpenSettings={() => setShowSettings(true)}
+        showSettings={showSettings}
+        onToggleSettings={() => setShowSettings(s => !s)}
         onAddDp={() => setShowAddDp(true)}
       />
 
@@ -110,7 +111,6 @@ function AppShell({ state, dispatch }: ShellProps) {
         <SettingsDrawer
           settings={state.settings}
           dispatch={dispatch}
-          onClose={() => setShowSettings(false)}
         />
       )}
 
