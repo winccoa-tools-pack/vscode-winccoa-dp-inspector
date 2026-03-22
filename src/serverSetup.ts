@@ -23,7 +23,7 @@ const DEFAULT_REPO_URL =
     'https://github.com/winccoa-tools-pack/winccoa-dp-inspector-server';
 
 /** Default branch to clone/pull (configurable via settings). */
-const DEFAULT_BRANCH = 'feature/dp-inspector-0.1.0';
+const DEFAULT_BRANCH = 'main';
 
 /**
  * Sub-directory name under `<project>/javascript/` where the server is installed.
