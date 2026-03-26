@@ -39,13 +39,19 @@
  */
 
 // src/extension.ts
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { ExtensionOutputChannel } from './extensionOutput';
 import { EXTENSION_CONFIG_SECTION, EXTENSION_ID, EXTENSION_NAME } from './const';
 import { setupCoreExtensionIntegration, cleanupCoreExtensionIntegration } from './otherExtensions';
 import { DpInspectorPanel } from './dpInspectorPanel';
 import { checkServerStatus, runSetup, runRebuild, addProgsEntryForProject } from './serverSetup';
-import { getCurrentProjectInfo } from './otherExtensions';
+import {
+    getCurrentProjectInfo,
+    isCoreExtensionAvailable,
+    type ProjectInfo,
+} from './otherExtensions';
 
 /**
  * Interface representing a WinCC OA project.
@@ -85,6 +91,47 @@ export async function activate(context: vscode.ExtensionContext) {
     // Setup Core extension integration (provides active WinCC OA project info)
     await setupCoreExtensionIntegration(context);
 
+    /**
+     * Returns the active project: from Project Admin if available, otherwise
+     * uses a previously stored folder or asks the user to pick one.
+     */
+    const getOrAskProjectInfo = async (): Promise<ProjectInfo | undefined> => {
+        // 1. Project Admin installed + project selected
+        const fromAdmin = getCurrentProjectInfo();
+        if (fromAdmin?.projectDir) {
+            return fromAdmin;
+        }
+
+        // 2. Project Admin installed but no project selected → guide user there
+        if (isCoreExtensionAvailable()) {
+            vscode.window.showErrorMessage(
+                'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
+            );
+            return undefined;
+        }
+
+        // 3. Project Admin not installed → use previously stored folder if still valid
+        const stored = context.workspaceState.get<string>('dpInspector.fallbackProjectDir');
+        if (stored && fs.existsSync(stored)) {
+            return { name: path.basename(stored), oaInstallPath: '', projectDir: stored };
+        }
+
+        // 4. Ask user to pick a WinCC OA project folder
+        const uris = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            title: 'Select your WinCC OA project folder',
+            openLabel: 'Select Project Folder',
+        });
+        if (!uris || uris.length === 0) {
+            return undefined;
+        }
+        const projectDir = uris[0].fsPath;
+        await context.workspaceState.update('dpInspector.fallbackProjectDir', projectDir);
+        return { name: path.basename(projectDir), oaInstallPath: '', projectDir };
+    };
+
     // Watch for configuration changes
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((e) => {
@@ -114,11 +161,8 @@ export async function activate(context: vscode.ExtensionContext) {
         ExtensionOutputChannel.info('Extension', 'Opening DP Inspector panel');
 
         // ── 1. Require an active project ─────────────────────────────────────
-        const project = getCurrentProjectInfo();
+        const project = await getOrAskProjectInfo();
         if (!project?.projectDir) {
-            vscode.window.showErrorMessage(
-                'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
-            );
             return;
         }
         const projectPath = project.projectDir;
@@ -183,11 +227,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const setupCommand = vscode.commands.registerCommand('winccoa.dpInspector.setup', async () => {
         ExtensionOutputChannel.info('Extension', 'Running server setup');
 
-        const project = getCurrentProjectInfo();
+        const project = await getOrAskProjectInfo();
         if (!project?.projectDir) {
-            vscode.window.showErrorMessage(
-                'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
-            );
             return;
         }
 
@@ -218,11 +259,8 @@ export async function activate(context: vscode.ExtensionContext) {
         async () => {
             ExtensionOutputChannel.info('Extension', 'Running server rebuild');
 
-            const project = getCurrentProjectInfo();
+            const project = await getOrAskProjectInfo();
             if (!project?.projectDir) {
-                vscode.window.showErrorMessage(
-                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
-                );
                 return;
             }
 
@@ -240,11 +278,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const statusCommand = vscode.commands.registerCommand(
         'winccoa.dpInspector.serverStatus',
         async () => {
-            const project = getCurrentProjectInfo();
+            const project = await getOrAskProjectInfo();
             if (!project?.projectDir) {
-                vscode.window.showErrorMessage(
-                    'No active WinCC OA project found. Please select a project in the Project Admin panel first.',
-                );
                 return;
             }
 
