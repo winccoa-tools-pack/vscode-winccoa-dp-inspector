@@ -111,23 +111,39 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         // 3. Project Admin not installed → use previously stored folder if still valid
-        const stored = context.workspaceState.get<string>('dpInspector.fallbackProjectDir');
+        let stored = context.workspaceState.get<string>('dpInspector.fallbackProjectDir');
+        // Heal a previously stored javascript/ sub-folder path
+        if (stored && path.basename(stored).toLowerCase() === 'javascript') {
+            stored = path.dirname(stored);
+            await context.workspaceState.update('dpInspector.fallbackProjectDir', stored);
+        }
         if (stored && fs.existsSync(stored)) {
             return { name: path.basename(stored), oaInstallPath: '', projectDir: stored };
         }
 
-        // 4. Ask user to pick a WinCC OA project folder
+        // 4. Ask user to pick a WinCC OA project root folder
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
-            title: 'Select your WinCC OA project folder',
+            title: 'Select your WinCC OA project root folder (contains config/, javascript/, …)',
             openLabel: 'Select Project Folder',
         });
         if (!uris || uris.length === 0) {
             return undefined;
         }
-        const projectDir = uris[0].fsPath;
+        let projectDir = uris[0].fsPath;
+
+        // Auto-correct: if the user accidentally picked the javascript/ sub-folder
+        // the server would end up at <proj>/javascript/javascript/dpInspectorServer
+        if (path.basename(projectDir).toLowerCase() === 'javascript') {
+            const corrected = path.dirname(projectDir);
+            vscode.window.showInformationMessage(
+                `Please select the WinCC OA project root, not the javascript sub-folder. Using "${corrected}" instead.`,
+            );
+            projectDir = corrected;
+        }
+
         await context.workspaceState.update('dpInspector.fallbackProjectDir', projectDir);
         return { name: path.basename(projectDir), oaInstallPath: '', projectDir };
     };
@@ -157,69 +173,8 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Register the "Open DP Inspector" command
-    const openCommand = vscode.commands.registerCommand('winccoa.dpInspector.open', async () => {
+    const openCommand = vscode.commands.registerCommand('winccoa.dpInspector.open', () => {
         ExtensionOutputChannel.info('Extension', 'Opening DP Inspector panel');
-
-        // ── 1. Require an active project ─────────────────────────────────────
-        const project = await getOrAskProjectInfo();
-        if (!project?.projectDir) {
-            return;
-        }
-        const projectPath = project.projectDir;
-
-        const status = checkServerStatus(projectPath);
-
-        // ── 2. Server not installed → offer full setup ────────────────────────
-        if (!status.isInstalled) {
-            const answer = await vscode.window.showInformationMessage(
-                'DP Inspector Server is not installed for this project. Run auto-setup now?',
-                'Run Setup',
-                'Cancel',
-            );
-            if (answer !== 'Run Setup') {
-                return;
-            }
-            try {
-                await runSetup(project);
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
-                vscode.window.showErrorMessage(`DP Inspector Server setup failed: ${msg}`);
-                return;
-            }
-            // Open panel after successful setup
-            DpInspectorPanel.createOrShow(context);
-            return;
-        }
-
-        // ── 3. Installed but no progs entry → offer to add it ────────────────
-        if (!status.hasProgsEntry) {
-            const answer = await vscode.window.showWarningMessage(
-                'DP Inspector Server is installed but has no manager entry in the progs file. Add it now?',
-                'Add Entry',
-                'Open Anyway',
-                'Cancel',
-            );
-            if (answer === 'Cancel' || answer === undefined) {
-                return;
-            }
-            if (answer === 'Add Entry') {
-                try {
-                    addProgsEntryForProject(projectPath);
-                    vscode.window.showInformationMessage(
-                        'Manager entry added to progs. Restart the WinCC OA project to start the server.',
-                    );
-                } catch (err) {
-                    const msg = err instanceof Error ? err.message : String(err);
-                    ExtensionOutputChannel.error('Extension', `Failed to add progs entry: ${msg}`);
-                    vscode.window.showErrorMessage(`Failed to add progs entry: ${msg}`);
-                    return;
-                }
-            }
-            // answer === 'Open Anyway' → fall through
-        }
-
-        // ── 4. All good (or user chose Open Anyway) → open panel ─────────────
         DpInspectorPanel.createOrShow(context);
     });
 
@@ -244,8 +199,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }
 
+        // With Project Admin: full auto (PMON manager registration)
+        // Without Project Admin: clone + build only, user adds manager manually
+        const registerManager = isCoreExtensionAvailable() && !!getCurrentProjectInfo()?.projectDir;
+
         try {
-            await runSetup(project);
+            await runSetup(project, registerManager);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             ExtensionOutputChannel.error('Extension', `Setup failed: ${msg}`);
