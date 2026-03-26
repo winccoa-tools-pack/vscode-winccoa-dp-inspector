@@ -50,6 +50,7 @@ import { checkServerStatus, runSetup, runRebuild, addProgsEntryForProject } from
 import {
     getCurrentProjectInfo,
     isCoreExtensionAvailable,
+    getCoreApi,
     type ProjectInfo,
 } from './otherExtensions';
 
@@ -90,6 +91,44 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Setup Core extension integration (provides active WinCC OA project info)
     await setupCoreExtensionIntegration(context);
+
+    // ── Auto-setup offer (Project Admin mode only) ───────────────────────────
+    // When Project Admin is installed + a project is selected but the server isn't
+    // installed yet, offer to run setup automatically via a status-bar notification.
+    const offerAutoSetupIfNeeded = (project: ProjectInfo | undefined): void => {
+        if (!project?.projectDir) {
+            return;
+        }
+        const status = checkServerStatus(project.projectDir);
+        if (!status.isInstalled) {
+            void vscode.window
+                .showInformationMessage(
+                    'DP Inspector: Server not set up yet for this project.',
+                    'Run Setup',
+                )
+                .then((answer) => {
+                    if (answer === 'Run Setup') {
+                        void vscode.commands.executeCommand('winccoa.dpInspector.setup');
+                    }
+                });
+        }
+    };
+
+    if (isCoreExtensionAvailable()) {
+        // Check once on activation
+        offerAutoSetupIfNeeded(getCurrentProjectInfo());
+
+        // Re-check whenever the active project changes
+        const api = getCoreApi() as {
+            onDidChangeProject?: (cb: (p: ProjectInfo | undefined) => void) => () => void;
+        } | null;
+        if (api?.onDidChangeProject) {
+            const unsub = api.onDidChangeProject((project) => {
+                offerAutoSetupIfNeeded(project);
+            });
+            context.subscriptions.push({ dispose: unsub });
+        }
+    }
 
     /**
      * Returns the active project: from Project Admin if available, otherwise
