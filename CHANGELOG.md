@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-03-26
+
+### Added
+
+- Auto-setup offer (status-bar notification) when Project Admin detects a project without the server installed — re-triggers on project switch
+- Works without Project Admin installed: folder picker fallback stores the chosen WinCC OA project root in workspace state
+
+### Fixed
+
+- Auto-correct when user accidentally selects the `javascript/` sub-folder instead of the project root (would have produced a double `javascript/javascript/` path)
+- Repository URLs and `extensionDependencies` cleaned up in `package.json`
+
 ## [0.2.0] - 2026-03-22
 
 ### Added
