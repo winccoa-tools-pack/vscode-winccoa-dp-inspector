@@ -134,7 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
      * Returns the active project: from Project Admin if available, otherwise
      * uses a previously stored folder or asks the user to pick one.
      */
-    const getOrAskProjectInfo = async (): Promise<ProjectInfo | undefined> => {
+    const getOrAskProjectInfo = async (alwaysAsk = false): Promise<ProjectInfo | undefined> => {
         // 1. Project Admin installed + project selected
         const fromAdmin = getCurrentProjectInfo();
         if (fromAdmin?.projectDir) {
@@ -150,14 +150,17 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         // 3. Project Admin not installed → use previously stored folder if still valid
-        let stored = context.workspaceState.get<string>('dpInspector.fallbackProjectDir');
-        // Heal a previously stored javascript/ sub-folder path
-        if (stored && path.basename(stored).toLowerCase() === 'javascript') {
-            stored = path.dirname(stored);
-            await context.workspaceState.update('dpInspector.fallbackProjectDir', stored);
-        }
-        if (stored && fs.existsSync(stored)) {
-            return { name: path.basename(stored), oaInstallPath: '', projectDir: stored };
+        //    Skip when alwaysAsk is set (e.g. setup command: user wants to pick a new folder)
+        if (!alwaysAsk) {
+            let stored = context.workspaceState.get<string>('dpInspector.fallbackProjectDir');
+            // Heal a previously stored javascript/ sub-folder path
+            if (stored && path.basename(stored).toLowerCase() === 'javascript') {
+                stored = path.dirname(stored);
+                await context.workspaceState.update('dpInspector.fallbackProjectDir', stored);
+            }
+            if (stored && fs.existsSync(stored)) {
+                return { name: path.basename(stored), oaInstallPath: '', projectDir: stored };
+            }
         }
 
         // 4. Ask user to pick a WinCC OA project root folder
@@ -221,26 +224,31 @@ export async function activate(context: vscode.ExtensionContext) {
     const setupCommand = vscode.commands.registerCommand('winccoa.dpInspector.setup', async () => {
         ExtensionOutputChannel.info('Extension', 'Running server setup');
 
-        const project = await getOrAskProjectInfo();
+        // In fallback mode always show folder picker so user can target any project
+        const project = await getOrAskProjectInfo(!isCoreExtensionAvailable());
         if (!project?.projectDir) {
             return;
-        }
-
-        const status = checkServerStatus(project.projectDir);
-        if (status.isInstalled) {
-            const answer = await vscode.window.showWarningMessage(
-                `DP Inspector Server is already installed at ${status.serverPath}. Re-install?`,
-                'Re-install',
-                'Cancel',
-            );
-            if (answer !== 'Re-install') {
-                return;
-            }
         }
 
         // With Project Admin: full auto (PMON manager registration)
         // Without Project Admin: clone + build only, user adds manager manually
         const registerManager = isCoreExtensionAvailable() && !!getCurrentProjectInfo()?.projectDir;
+
+        // Only warn about re-install in Project Admin mode — in fallback mode the
+        // user explicitly picked a folder, so we always just run (no block dialog).
+        if (registerManager) {
+            const status = checkServerStatus(project.projectDir);
+            if (status.isInstalled) {
+                const answer = await vscode.window.showWarningMessage(
+                    `DP Inspector Server is already installed at ${status.serverPath}. Re-install?`,
+                    'Re-install',
+                    'Cancel',
+                );
+                if (answer !== 'Re-install') {
+                    return;
+                }
+            }
+        }
 
         try {
             await runSetup(project, registerManager);
