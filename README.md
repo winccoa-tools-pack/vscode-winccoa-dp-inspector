@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/RichardJansich.winccoa-dp-inspector?label=VS%20Marketplace)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
+![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.110.0-007ACC.svg)
 
 [Features](#-features) • [Installation](#-installation) • [Known Issues](#-known-issues)
 
@@ -18,7 +18,7 @@
 
 ---
 
-> **Latest Update (v0.2.0):** Auto-Setup wizard with PMON integration — the server manager is installed and started at runtime without a project restart. See [CHANGELOG](CHANGELOG.md) for details.
+> **Latest Update:** Auto-Setup wizard with PMON integration — the server manager is installed and started at runtime without a project restart. See [CHANGELOG](CHANGELOG.md) for details.
 >
 > **Tip:** If the extension doesn't work as expected, try `Ctrl+Shift+P` → `Reload Window` to refresh.
 
@@ -96,7 +96,7 @@
 Found an issue? Please report it with:
 
 - WinCC OA version
-- Extension version (`0.2.0`)
+- Extension version (see VS Code Extensions view)
 - Steps to reproduce
 - Output from the extension output channel (`WinCC OA DP Inspector`)
 
@@ -134,7 +134,7 @@ The server runs as a WinCC OA JavaScript Manager with full access to the runtime
 
 ## 🛠️ Requirements
 
-- **VS Code:** 1.109.2 or higher
+- **VS Code:** 1.110.0 or higher
 - **WinCC OA:** 3.19+ (running project with JavaScript Manager support)
 - **Node.js:** 14+ (for the dp-inspector-server runtime)
 - **WinCC OA Project Admin Extension:** Required for automatic project detection and PMON integration
