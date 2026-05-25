@@ -2,19 +2,19 @@
   "name": "winccoa-dp-inspector",
   "displayName": "WinCC OA DP Inspector",
   "description": "Live datapoint inspector for WinCC OA — charts, subscriptions, and real-time value monitoring.",
-  "publisher": "RichardJansich",
+  "publisher": "RichardJanisch",
   "version": "0.2.0",
-  "author": "RichardJansich",
+  "author": "RichardJanisch",
   "license": "MIT",
   "icon": "resources/wincc_oa_dp_inspector_512.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RichardJansich/vscode-winccoa-dp-inspector"
+    "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector"
   },
   "bugs": {
-    "url": "https://github.com/RichardJansich/vscode-winccoa-dp-inspector/issues"
+    "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector/issues"
   },
-  "homepage": "https://github.com/RichardJansich/vscode-winccoa-dp-inspector#readme",
+  "homepage": "https://github.com/winccoa-tools-pack/vscode-winccoa-dp-inspector#readme",
   "engines": {
     "vscode": "^1.110.0"
   },
